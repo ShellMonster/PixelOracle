@@ -7,6 +7,8 @@
   
   [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
   [![Chrome Extension](https://img.shields.io/badge/Chrome-Extension-4285F4?logo=google-chrome&logoColor=white)](https://chrome.google.com/webstore/)
+  
+  **Language / 语言:** [English](README.md) | [简体中文](README.zh-CN.md)
 </div>
 
 ---
@@ -71,7 +73,7 @@ PixelOracle requires an API key from either:
 |---------|-------------|---------|
 | API Provider | Gemini or OpenAI | Gemini |
 | Output Language | Language for generated prompts | Auto-detect |
-| Request Timeout | Maximum wait time for API response | 120 seconds |
+| Request Timeout | Maximum wait time for API response | 180 seconds |
 
 ## 📱 Usage
 

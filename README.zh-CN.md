@@ -7,6 +7,8 @@
   
   [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
   [![Chrome Extension](https://img.shields.io/badge/Chrome-Extension-4285F4?logo=google-chrome&logoColor=white)](https://chrome.google.com/webstore/)
+  
+  **语言 / Language:** [简体中文](README.zh-CN.md) | [English](README.md)
 </div>
 
 ---
@@ -26,6 +28,8 @@ PixelOracle 是一款 Chrome 浏览器扩展，使用 AI 视觉技术分析图�
 ## 🚀 安装
 
 ### 从源码安装
+
+1. 克隆仓库：
 
 1. 克隆仓库：
    ```bash
@@ -71,7 +75,7 @@ PixelOracle 需要以下任一 API 密钥：
 |------|------|--------|
 | API 服务商 | Gemini 或 OpenAI | Gemini |
 | 输出语言 | 生成提示词的语言 | 自动检测 |
-| 请求超时 | API 响应最大等待时间 | 120 秒 |
+| 请求超时 | API 响应最大等待时间 | 180 秒 |
 
 ## 📱 使用方法
 

@@ -106,7 +106,7 @@ async function handleAnalyzeImage(imageData: string): Promise<AnalyzeResponse> {
     }
     
     // 5. 根据配置的 API 提供商调用对应的 API
-    const timeoutMs = (settings.timeout || 120) * 1000 // 转换为毫秒
+    const timeoutMs = (settings.timeout || 180) * 1000 // 转换为毫秒
     let prompt: string
     
     if (settings.apiProvider === 'gemini') {
@@ -133,7 +133,7 @@ async function handleAnalyzeImage(imageData: string): Promise<AnalyzeResponse> {
         settings.openaiApiKey,
         settings.openaiBaseUrl || 'https://api.openai.com/v1',
         'gpt-4o', // 默认使用 gpt-4o 模型
-        settings.timeout || 120 // timeout 参数是秒
+        settings.timeout || 180 // timeout 参数是秒
       )
       
       // 使用 Promise.race 实现超时控制

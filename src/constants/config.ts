@@ -28,7 +28,7 @@ export const CONFIG = {
 
   // ========== 超时配置（毫秒） ==========
   /** 默认请求超时时间（2分钟） */
-  DEFAULT_TIMEOUT_MS: 120000,
+  DEFAULT_TIMEOUT_MS: 180000,
   /** 消息通信超时时间（2分10秒） */
   MESSAGE_TIMEOUT_MS: 130000,
   /** Tab消息超时时间（30秒） */
