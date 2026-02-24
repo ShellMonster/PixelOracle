@@ -1,0 +1,265 @@
+{
+  "extensionName": {
+    "message": "PixelOracle",
+    "description": "拡張機能名"
+  },
+  "extensionDescription": {
+    "message": "AIビジョン技術で画像を分析し、AIプロンプトを抽出",
+    "description": "拡張機能の説明"
+  },
+
+  "timeJustNow": {
+    "message": "たった今"
+  },
+  "timeMinutesAgo": {
+    "message": "$minutes$分前",
+    "placeholders": {
+      "minutes": {
+        "content": "$1"
+      }
+    }
+  },
+  "timeHoursAgo": {
+    "message": "$hours$時間前",
+    "placeholders": {
+      "hours": {
+        "content": "$1"
+      }
+    }
+  },
+
+  "errorLoadHistory": {
+    "message": "履歴の読み込みに失敗しました"
+  },
+  "errorCopyFailed": {
+    "message": "コピーに失敗しました"
+  },
+  "errorClearFailed": {
+    "message": "クリアに失敗しました"
+  },
+  "errorSaveFailed": {
+    "message": "設定の保存に失敗しました"
+  },
+  "errorCheckForm": {
+    "message": "フォームのエラーを確認してください"
+  },
+  "errorGeminiApiKeyRequired": {
+    "message": "Gemini APIキーが必要です"
+  },
+  "errorOpenaiApiKeyRequired": {
+    "message": "OpenAI APIキーが必要です"
+  },
+  "errorOpenaiBaseUrlRequired": {
+    "message": "OpenAI Base URLが必要です"
+  },
+  "errorInvalidUrlProtocol": {
+    "message": "無効なURLプロトコルです。httpとhttpsのみ許可されています"
+  },
+  "errorInvalidUrl": {
+    "message": "URL形式が無効です"
+  },
+  "errorImageDataEmpty": {
+    "message": "画像データが空です"
+  },
+  "errorMimeTypeEmpty": {
+    "message": "MIMEタイプが空です"
+  },
+  "errorApiUnknown": {
+    "message": "不明なAPIエラーです"
+  },
+  "errorApiInvalidResponse": {
+    "message": "APIレスポンスが無効です"
+  },
+  "errorNetworkFailed": {
+    "message": "ネットワークリクエストに失敗しました"
+  },
+  "errorApiNoResult": {
+    "message": "APIから結果が返されませんでした"
+  },
+  "errorApiEmptyContent": {
+    "message": "APIから空のコンテンツが返されました"
+  },
+  "errorAnalysisFailed": {
+    "message": "画像解析に失敗しました"
+  },
+
+  "copiedToClipboard": {
+    "message": "クリップボードにコピーしました"
+  },
+  "historyCleared": {
+    "message": "履歴をクリアしました"
+  },
+  "settingsSaved": {
+    "message": "設定を保存しました"
+  },
+  "connectionTestSuccess": {
+    "message": "接続テストに成功しました"
+  },
+  "copied": {
+    "message": "コピーしました"
+  },
+
+  "extensionDisabled": {
+    "message": "拡張機能が無効です"
+  },
+  "extensionEnabled": {
+    "message": "拡張機能が有効です"
+  },
+  "statusDisabled": {
+    "message": "無効"
+  },
+  "statusEnabled": {
+    "message": "有効"
+  },
+  "switchedTo": {
+    "message": "$status$に切り替えました",
+    "placeholders": {
+      "status": {
+        "content": "$1"
+      }
+    }
+  },
+
+  "appTitle": {
+    "message": "PixelOracle"
+  },
+  "openSettings": {
+    "message": "設定を開く"
+  },
+  "aiService": {
+    "message": "AIサービス"
+  },
+  "extensionStatus": {
+    "message": "拡張機能の状態"
+  },
+  "historyTitle": {
+    "message": "履歴"
+  },
+  "clear": {
+    "message": "クリア"
+  },
+  "noHistory": {
+    "message": "履歴はまだありません"
+  },
+  "noHistoryHint": {
+    "message": "画像を右クリックして解析してください"
+  },
+  "openFullSettings": {
+    "message": "全設定を開く"
+  },
+  "hide": {
+    "message": "非表示"
+  },
+  "show": {
+    "message": "表示"
+  },
+  "loading": {
+    "message": "読み込み中..."
+  },
+  "settings": {
+    "message": "設定"
+  },
+  "settingsSubtitle": {
+    "message": "AIサービスを設定してください"
+  },
+  "apiConfig": {
+    "message": "API設定"
+  },
+  "apiProvider": {
+    "message": "APIプロバイダー"
+  },
+  "openaiCompatible": {
+    "message": "OpenAI互換"
+  },
+  "placeholderGeminiApiKey": {
+    "message": "Gemini APIキーを入力してください"
+  },
+  "hintGeminiApiKey": {
+    "message": "Google AI StudioからAPIキーを取得してください"
+  },
+  "hintOpenaiApi": {
+    "message": "OpenAI APIキーとBase URLを入力してください"
+  },
+  "advancedSettings": {
+    "message": "詳細設定"
+  },
+  "outputLanguage": {
+    "message": "出力言語"
+  },
+  "requestTimeout": {
+    "message": "リクエストタイムアウト"
+  },
+  "seconds": {
+    "message": "秒"
+  },
+  "hintTimeout": {
+    "message": "APIレスポンスを待機する最大時間"
+  },
+
+  "langAuto": {
+    "message": "自動検出"
+  },
+  "langZh": {
+    "message": "中国語"
+  },
+  "langEn": {
+    "message": "英語"
+  },
+  "langJa": {
+    "message": "日本語"
+  },
+  "langKo": {
+    "message": "韓国語"
+  },
+
+  "saving": {
+    "message": "保存中..."
+  },
+  "saveSettings": {
+    "message": "設定を保存"
+  },
+  "testing": {
+    "message": "テスト中..."
+  },
+  "testConnection": {
+    "message": "接続テスト"
+  },
+  "testingConnection": {
+    "message": "接続をテスト中..."
+  },
+  "connectionTestFailed": {
+    "message": "接続テストに失敗しました"
+  },
+  "close": {
+    "message": "閉じる"
+  },
+  "copy": {
+    "message": "コピー"
+  },
+
+  "prompt": {
+    "message": "プロンプト"
+  },
+  "analyzingImage": {
+    "message": "画像を解析中..."
+  },
+  "reversePrompt": {
+    "message": "リバースプロンプト"
+  },
+  "confirmClearHistory": {
+    "message": "すべての履歴をクリアしてもよろしいですか？"
+  },
+
+  "usageTips": {
+    "message": "使用のヒント"
+  },
+  "tip1": {
+    "message": "任意の画像を右クリックし、「PixelOracleで画像を解析」を選択"
+  },
+  "tip2": {
+    "message": "初めて使用する前に設定でAIサービスを設定してください"
+  },
+  "tip3": {
+    "message": "拡張機能のポップアップで解析履歴を確認"
+  }
+}

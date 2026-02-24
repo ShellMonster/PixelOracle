@@ -1,0 +1,265 @@
+{
+  "extensionName": {
+    "message": "PixelOracle",
+    "description": "Name of the extension"
+  },
+  "extensionDescription": {
+    "message": "Analyze images and extract AI prompts with AI vision technology",
+    "description": "Description of the extension"
+  },
+
+  "timeJustNow": {
+    "message": "Just now"
+  },
+  "timeMinutesAgo": {
+    "message": "$minutes$ minutes ago",
+    "placeholders": {
+      "minutes": {
+        "content": "$1"
+      }
+    }
+  },
+  "timeHoursAgo": {
+    "message": "$hours$ hours ago",
+    "placeholders": {
+      "hours": {
+        "content": "$1"
+      }
+    }
+  },
+
+  "errorLoadHistory": {
+    "message": "Failed to load history"
+  },
+  "errorCopyFailed": {
+    "message": "Failed to copy"
+  },
+  "errorClearFailed": {
+    "message": "Failed to clear"
+  },
+  "errorSaveFailed": {
+    "message": "Failed to save settings"
+  },
+  "errorCheckForm": {
+    "message": "Please check the form for errors"
+  },
+  "errorGeminiApiKeyRequired": {
+    "message": "Gemini API key is required"
+  },
+  "errorOpenaiApiKeyRequired": {
+    "message": "OpenAI API key is required"
+  },
+  "errorOpenaiBaseUrlRequired": {
+    "message": "OpenAI Base URL is required"
+  },
+  "errorInvalidUrlProtocol": {
+    "message": "Invalid URL protocol. Only http and https are allowed"
+  },
+  "errorInvalidUrl": {
+    "message": "Invalid URL format"
+  },
+  "errorImageDataEmpty": {
+    "message": "Image data is empty"
+  },
+  "errorMimeTypeEmpty": {
+    "message": "MIME type is empty"
+  },
+  "errorApiUnknown": {
+    "message": "Unknown API error"
+  },
+  "errorApiInvalidResponse": {
+    "message": "Invalid API response"
+  },
+  "errorNetworkFailed": {
+    "message": "Network request failed"
+  },
+  "errorApiNoResult": {
+    "message": "No result from API"
+  },
+  "errorApiEmptyContent": {
+    "message": "Empty content from API"
+  },
+  "errorAnalysisFailed": {
+    "message": "Image analysis failed"
+  },
+
+  "copiedToClipboard": {
+    "message": "Copied to clipboard"
+  },
+  "historyCleared": {
+    "message": "History cleared"
+  },
+  "settingsSaved": {
+    "message": "Settings saved successfully"
+  },
+  "connectionTestSuccess": {
+    "message": "Connection test successful"
+  },
+  "copied": {
+    "message": "Copied"
+  },
+
+  "extensionDisabled": {
+    "message": "Extension is disabled"
+  },
+  "extensionEnabled": {
+    "message": "Extension is enabled"
+  },
+  "statusDisabled": {
+    "message": "Disabled"
+  },
+  "statusEnabled": {
+    "message": "Enabled"
+  },
+  "switchedTo": {
+    "message": "Switched to $status$",
+    "placeholders": {
+      "status": {
+        "content": "$1"
+      }
+    }
+  },
+
+  "appTitle": {
+    "message": "PixelOracle"
+  },
+  "openSettings": {
+    "message": "Open Settings"
+  },
+  "aiService": {
+    "message": "AI Service"
+  },
+  "extensionStatus": {
+    "message": "Extension Status"
+  },
+  "historyTitle": {
+    "message": "History"
+  },
+  "clear": {
+    "message": "Clear"
+  },
+  "noHistory": {
+    "message": "No history yet"
+  },
+  "noHistoryHint": {
+    "message": "Right-click on an image to analyze it"
+  },
+  "openFullSettings": {
+    "message": "Open Full Settings"
+  },
+  "hide": {
+    "message": "Hide"
+  },
+  "show": {
+    "message": "Show"
+  },
+  "loading": {
+    "message": "Loading..."
+  },
+  "settings": {
+    "message": "Settings"
+  },
+  "settingsSubtitle": {
+    "message": "Configure your AI service"
+  },
+  "apiConfig": {
+    "message": "API Configuration"
+  },
+  "apiProvider": {
+    "message": "API Provider"
+  },
+  "openaiCompatible": {
+    "message": "OpenAI Compatible"
+  },
+  "placeholderGeminiApiKey": {
+    "message": "Enter your Gemini API key"
+  },
+  "hintGeminiApiKey": {
+    "message": "Get your API key from Google AI Studio"
+  },
+  "hintOpenaiApi": {
+    "message": "Enter your OpenAI API key and base URL"
+  },
+  "advancedSettings": {
+    "message": "Advanced Settings"
+  },
+  "outputLanguage": {
+    "message": "Output Language"
+  },
+  "requestTimeout": {
+    "message": "Request Timeout"
+  },
+  "seconds": {
+    "message": "seconds"
+  },
+  "hintTimeout": {
+    "message": "Maximum time to wait for API response"
+  },
+
+  "langAuto": {
+    "message": "Auto Detect"
+  },
+  "langZh": {
+    "message": "Chinese"
+  },
+  "langEn": {
+    "message": "English"
+  },
+  "langJa": {
+    "message": "Japanese"
+  },
+  "langKo": {
+    "message": "Korean"
+  },
+
+  "saving": {
+    "message": "Saving..."
+  },
+  "saveSettings": {
+    "message": "Save Settings"
+  },
+  "testing": {
+    "message": "Testing..."
+  },
+  "testConnection": {
+    "message": "Test Connection"
+  },
+  "testingConnection": {
+    "message": "Testing connection..."
+  },
+  "connectionTestFailed": {
+    "message": "Connection test failed"
+  },
+  "close": {
+    "message": "Close"
+  },
+  "copy": {
+    "message": "Copy"
+  },
+
+  "prompt": {
+    "message": "Prompt"
+  },
+  "analyzingImage": {
+    "message": "Analyzing image..."
+  },
+  "reversePrompt": {
+    "message": "Reverse Prompt"
+  },
+  "confirmClearHistory": {
+    "message": "Are you sure you want to clear all history?"
+  },
+
+  "usageTips": {
+    "message": "Usage Tips"
+  },
+  "tip1": {
+    "message": "Right-click on any image and select 'Analyze Image with PixelOracle'"
+  },
+  "tip2": {
+    "message": "Configure your AI service in settings before first use"
+  },
+  "tip3": {
+    "message": "View your analysis history in the extension popup"
+  }
+}

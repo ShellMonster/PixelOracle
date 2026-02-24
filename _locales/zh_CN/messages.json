@@ -1,0 +1,265 @@
+{
+  "extensionName": {
+    "message": "PixelOracle",
+    "description": "扩展名称"
+  },
+  "extensionDescription": {
+    "message": "使用AI视觉技术分析图片并提取AI提示词",
+    "description": "扩展描述"
+  },
+
+  "timeJustNow": {
+    "message": "刚刚"
+  },
+  "timeMinutesAgo": {
+    "message": "$minutes$分钟前",
+    "placeholders": {
+      "minutes": {
+        "content": "$1"
+      }
+    }
+  },
+  "timeHoursAgo": {
+    "message": "$hours$小时前",
+    "placeholders": {
+      "hours": {
+        "content": "$1"
+      }
+    }
+  },
+
+  "errorLoadHistory": {
+    "message": "加载历史记录失败"
+  },
+  "errorCopyFailed": {
+    "message": "复制失败"
+  },
+  "errorClearFailed": {
+    "message": "清除失败"
+  },
+  "errorSaveFailed": {
+    "message": "保存设置失败"
+  },
+  "errorCheckForm": {
+    "message": "请检查表单错误"
+  },
+  "errorGeminiApiKeyRequired": {
+    "message": "需要Gemini API密钥"
+  },
+  "errorOpenaiApiKeyRequired": {
+    "message": "需要OpenAI API密钥"
+  },
+  "errorOpenaiBaseUrlRequired": {
+    "message": "需要OpenAI Base URL"
+  },
+  "errorInvalidUrlProtocol": {
+    "message": "无效的URL协议，仅允许http和https"
+  },
+  "errorInvalidUrl": {
+    "message": "URL格式无效"
+  },
+  "errorImageDataEmpty": {
+    "message": "图片数据为空"
+  },
+  "errorMimeTypeEmpty": {
+    "message": "MIME类型为空"
+  },
+  "errorApiUnknown": {
+    "message": "未知的API错误"
+  },
+  "errorApiInvalidResponse": {
+    "message": "API响应无效"
+  },
+  "errorNetworkFailed": {
+    "message": "网络请求失败"
+  },
+  "errorApiNoResult": {
+    "message": "API未返回结果"
+  },
+  "errorApiEmptyContent": {
+    "message": "API返回内容为空"
+  },
+  "errorAnalysisFailed": {
+    "message": "图片分析失败"
+  },
+
+  "copiedToClipboard": {
+    "message": "已复制到剪贴板"
+  },
+  "historyCleared": {
+    "message": "历史记录已清除"
+  },
+  "settingsSaved": {
+    "message": "设置已保存"
+  },
+  "connectionTestSuccess": {
+    "message": "连接测试成功"
+  },
+  "copied": {
+    "message": "已复制"
+  },
+
+  "extensionDisabled": {
+    "message": "扩展已禁用"
+  },
+  "extensionEnabled": {
+    "message": "扩展已启用"
+  },
+  "statusDisabled": {
+    "message": "已禁用"
+  },
+  "statusEnabled": {
+    "message": "已启用"
+  },
+  "switchedTo": {
+    "message": "已切换到$status$",
+    "placeholders": {
+      "status": {
+        "content": "$1"
+      }
+    }
+  },
+
+  "appTitle": {
+    "message": "PixelOracle"
+  },
+  "openSettings": {
+    "message": "打开设置"
+  },
+  "aiService": {
+    "message": "AI服务"
+  },
+  "extensionStatus": {
+    "message": "扩展状态"
+  },
+  "historyTitle": {
+    "message": "历史记录"
+  },
+  "clear": {
+    "message": "清除"
+  },
+  "noHistory": {
+    "message": "暂无历史记录"
+  },
+  "noHistoryHint": {
+    "message": "右键点击图片进行分析"
+  },
+  "openFullSettings": {
+    "message": "打开完整设置"
+  },
+  "hide": {
+    "message": "隐藏"
+  },
+  "show": {
+    "message": "显示"
+  },
+  "loading": {
+    "message": "加载中..."
+  },
+  "settings": {
+    "message": "设置"
+  },
+  "settingsSubtitle": {
+    "message": "配置您的AI服务"
+  },
+  "apiConfig": {
+    "message": "API配置"
+  },
+  "apiProvider": {
+    "message": "API提供商"
+  },
+  "openaiCompatible": {
+    "message": "OpenAI兼容"
+  },
+  "placeholderGeminiApiKey": {
+    "message": "输入您的Gemini API密钥"
+  },
+  "hintGeminiApiKey": {
+    "message": "从Google AI Studio获取您的API密钥"
+  },
+  "hintOpenaiApi": {
+    "message": "输入您的OpenAI API密钥和Base URL"
+  },
+  "advancedSettings": {
+    "message": "高级设置"
+  },
+  "outputLanguage": {
+    "message": "输出语言"
+  },
+  "requestTimeout": {
+    "message": "请求超时"
+  },
+  "seconds": {
+    "message": "秒"
+  },
+  "hintTimeout": {
+    "message": "等待API响应的最长时间"
+  },
+
+  "langAuto": {
+    "message": "自动检测"
+  },
+  "langZh": {
+    "message": "中文"
+  },
+  "langEn": {
+    "message": "英文"
+  },
+  "langJa": {
+    "message": "日语"
+  },
+  "langKo": {
+    "message": "韩语"
+  },
+
+  "saving": {
+    "message": "保存中..."
+  },
+  "saveSettings": {
+    "message": "保存设置"
+  },
+  "testing": {
+    "message": "测试中..."
+  },
+  "testConnection": {
+    "message": "测试连接"
+  },
+  "testingConnection": {
+    "message": "正在测试连接..."
+  },
+  "connectionTestFailed": {
+    "message": "连接测试失败"
+  },
+  "close": {
+    "message": "关闭"
+  },
+  "copy": {
+    "message": "复制"
+  },
+
+  "prompt": {
+    "message": "提示词"
+  },
+  "analyzingImage": {
+    "message": "正在分析图片..."
+  },
+  "reversePrompt": {
+    "message": "逆向提示词"
+  },
+  "confirmClearHistory": {
+    "message": "确定要清除所有历史记录吗？"
+  },
+
+  "usageTips": {
+    "message": "使用提示"
+  },
+  "tip1": {
+    "message": "右键点击任意图片，选择'使用PixelOracle分析图片'"
+  },
+  "tip2": {
+    "message": "首次使用前请在设置中配置您的AI服务"
+  },
+  "tip3": {
+    "message": "在扩展弹窗中查看您的分析历史"
+  }
+}
