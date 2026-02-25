@@ -1,4 +1,5 @@
 import { t } from '../utils/i18n'
+import { CONFIG } from '../constants/config'
 
 /**
  * 按钮覆盖组件模块
@@ -279,6 +280,15 @@ export class ButtonOverlay {
   private updatePosition(): void {
     // 获取图片的位置信息
     const rect = this.targetImage.getBoundingClientRect();
+
+    // 计算图片与视口的可见交集，避免只露出极小区域时按钮被钳制到左上角
+    const visibleLeft = Math.max(rect.left, 0);
+    const visibleTop = Math.max(rect.top, 0);
+    const visibleRight = Math.min(rect.right, window.innerWidth);
+    const visibleBottom = Math.min(rect.bottom, window.innerHeight);
+    const visibleWidth = Math.max(0, visibleRight - visibleLeft);
+    const visibleHeight = Math.max(0, visibleBottom - visibleTop);
+    const visibleArea = visibleWidth * visibleHeight;
     
     // 检查图片是否在视口内
     if (
@@ -287,7 +297,10 @@ export class ButtonOverlay {
       rect.bottom <= 0 ||
       rect.top >= window.innerHeight ||
       rect.right <= 0 ||
-      rect.left >= window.innerWidth
+      rect.left >= window.innerWidth ||
+      visibleWidth < CONFIG.OVERLAY_MIN_VISIBLE_WIDTH ||
+      visibleHeight < CONFIG.OVERLAY_MIN_VISIBLE_HEIGHT ||
+      visibleArea < CONFIG.OVERLAY_MIN_VISIBLE_AREA
     ) {
       this.inViewport = false;
       if (this.lastVisible) {

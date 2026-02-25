@@ -13,6 +13,12 @@ export const CONFIG = {
   IMAGE_MIN_RENDER_SIZE: 72,
   /** 图片在页面上的最小显示面积（像素），用于过滤头像/小图标 */
   IMAGE_MIN_RENDER_AREA: 6400,
+  /** 按钮展示所需的最小可视宽度（像素） */
+  OVERLAY_MIN_VISIBLE_WIDTH: 40,
+  /** 按钮展示所需的最小可视高度（像素） */
+  OVERLAY_MIN_VISIBLE_HEIGHT: 40,
+  /** 按钮展示所需的最小可视面积（像素） */
+  OVERLAY_MIN_VISIBLE_AREA: 1600,
 
   // ========== 缩略图配置 ==========
   /** 缩略图最大尺寸（像素），用于限制预览图大小 */
