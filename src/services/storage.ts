@@ -30,7 +30,7 @@ export const DEFAULT_SETTINGS: Settings = {
   openaiApiKey: '',
   openaiBaseUrl: 'https://api.openai.com/v1',
   language: 'auto',
-  timeout: 120, // 2分钟
+  timeout: 180, // 3分钟
   enabled: true,
 }
 

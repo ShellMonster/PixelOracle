@@ -36,18 +36,15 @@ export class ButtonOverlay {
   
   // 当前按钮状态
   private state: ButtonState = 'idle';
+
+  // 最近一次定位后是否在视口范围内
+  private inViewport = false;
   
   // 关联的目标图片元素
   private targetImage: HTMLImageElement;
   
   // 点击回调函数
   private onClickCallback: (() => void) | null = null;
-  
-  // 窗口 resize 事件处理函数（用于移除监听器）
-  private resizeHandler: () => void;
-  
-  // 跟踪图片位置变化的 IntersectionObserver
-  private intersectionObserver: IntersectionObserver | null = null;
   
   // 图片属性变化监听器（监听 src、style 等变化）
   private mutationObserver: MutationObserver | null = null;
@@ -68,9 +65,6 @@ export class ButtonOverlay {
     
     // 创建按钮元素
     this.button = this.createButton();
-    
-    // 绑定 resize 事件处理函数
-    this.resizeHandler = this.updatePosition.bind(this);
     
     // 初始化
     this.init();
@@ -206,7 +200,9 @@ export class ButtonOverlay {
       .prompt-button svg {
         width: 16px;
         height: 16px;
-        fill: white;
+        color: white;
+        stroke: currentColor;
+        fill: none;
         flex-shrink: 0;
       }
       
@@ -270,27 +266,9 @@ export class ButtonOverlay {
 
   /**
    * 启动位置同步
-   * 监听窗口 resize、滚动以及图片位置变化
+   * 监听图片属性变化（src/style/size/class）
    */
   private startPositionSync(): void {
-    // 监听窗口 resize
-    window.addEventListener('resize', this.resizeHandler);
-    
-    // 监听滚动（使用 passive 提升性能）
-    window.addEventListener('scroll', this.resizeHandler, { passive: true });
-
-    // 使用 IntersectionObserver 监听图片可见性变化
-    this.intersectionObserver = new IntersectionObserver(
-      () => {
-        this.updatePosition();
-      },
-      {
-        threshold: [0, 0.25, 0.5, 0.75, 1],
-        rootMargin: '50px',
-      }
-    );
-    this.intersectionObserver.observe(this.targetImage);
-
     // 监听图片属性变化（src 改变可能导致尺寸变化）
     this.mutationObserver = new MutationObserver(() => {
       // 延迟更新，等待图片加载完成
@@ -311,11 +289,20 @@ export class ButtonOverlay {
     const rect = this.targetImage.getBoundingClientRect();
     
     // 检查图片是否在视口内
-    if (rect.width === 0 || rect.height === 0) {
+    if (
+      rect.width === 0 ||
+      rect.height === 0 ||
+      rect.bottom <= 0 ||
+      rect.top >= window.innerHeight ||
+      rect.right <= 0 ||
+      rect.left >= window.innerWidth
+    ) {
+      this.inViewport = false;
       this.container.style.display = 'none';
       return;
     }
     
+    this.inViewport = true;
     this.container.style.display = 'block';
     
     // 计算按钮位置：图片左下角，偏移 4px
@@ -323,16 +310,32 @@ export class ButtonOverlay {
     const buttonSize = 28;
     const offset = 4;
     
-    const left = rect.left + offset;
-    const top = rect.bottom - buttonSize - offset;
+    const left = Math.min(Math.max(rect.left + offset, 4), window.innerWidth - buttonSize - 4);
+    const top = Math.min(Math.max(rect.bottom - buttonSize - offset, 4), window.innerHeight - buttonSize - 4);
     
     // 应用位置到容器
     this.container.style.position = 'fixed';
-    this.container.style.left = `${left}px`;
-    this.container.style.top = `${top}px`;
+    this.container.style.left = '0';
+    this.container.style.top = '0';
+    this.container.style.transform = `translate3d(${left}px, ${top}px, 0)`;
+    this.container.style.willChange = 'transform';
     this.container.style.width = `${buttonSize}px`;
     this.container.style.height = `${buttonSize}px`;
     this.container.style.pointerEvents = 'auto';
+  }
+
+  /**
+   * 由外部统一调度位置更新（全局滚动/resize驱动）
+   */
+  public syncPosition(): void {
+    this.updatePosition();
+  }
+
+  /**
+   * 获取最近一次定位后的可见状态
+   */
+  public isInViewport(): boolean {
+    return this.inViewport;
   }
 
   /**
@@ -407,19 +410,16 @@ export class ButtonOverlay {
   }
 
   /**
-   * 获取闲置状态的魔杖图标 SVG
+   * 获取闲置状态的 Sparkles 图标（与参考项目风格一致）
    */
   private getIdleIcon(): string {
     return `
       <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72"/>
-        <path d="m14 7 3 3"/>
-        <path d="M5 6v4"/>
-        <path d="M19 14v4"/>
-        <path d="M10 2v2"/>
-        <path d="M7 8H3"/>
-        <path d="M21 16h-4"/>
-        <path d="M11 3H9"/>
+        <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
+        <path d="M5 3v4"/>
+        <path d="M3 5h4"/>
+        <path d="M19 17v4"/>
+        <path d="M17 19h4"/>
       </svg>
     `;
   }
@@ -429,9 +429,9 @@ export class ButtonOverlay {
    */
   private getLoadingIcon(): string {
     return `
-      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/>
-        <path d="M12 4c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z" opacity=".3"/>
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10" opacity="0.25"/>
+        <path d="M22 12a10 10 0 0 0-10-10"/>
       </svg>
     `;
   }
@@ -441,7 +441,7 @@ export class ButtonOverlay {
    */
   private getSuccessIcon(): string {
     return `
-      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
         <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
       </svg>
     `;
@@ -486,16 +486,7 @@ export class ButtonOverlay {
    * 清理所有事件监听器和 DOM 元素
    */
   public destroy(): void {
-    // 移除事件监听器
-    window.removeEventListener('resize', this.resizeHandler);
-    window.removeEventListener('scroll', this.resizeHandler);
-    
     // 断开观察者
-    if (this.intersectionObserver) {
-      this.intersectionObserver.disconnect();
-      this.intersectionObserver = null;
-    }
-    
     if (this.mutationObserver) {
       this.mutationObserver.disconnect();
       this.mutationObserver = null;

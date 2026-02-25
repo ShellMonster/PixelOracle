@@ -8,15 +8,255 @@ import { ImageDetector } from './image-detector'
 import { ButtonOverlay } from './button-overlay'
 import { PromptPopup } from './prompt-popup'
 import { logger } from '../utils/logger'
+import { CONFIG } from '../constants'
 
 // 用于存储图片到按钮覆盖层的映射
 const overlayMap = new Map<HTMLImageElement, ButtonOverlay>()
+const pendingImages = new Set<HTMLImageElement>()
+
+// 全局位置同步 raf
+let positionSyncRafId: number | null = null
+
+// 全局清理 raf
+let overlayCleanupRafId: number | null = null
+
+// 全局 DOM 生命周期 observer（单例）
+let overlayLifecycleObserver: MutationObserver | null = null
+let imageVisibilityObserver: IntersectionObserver | null = null
+let overlayProbeCursor = 0
 
 // 全局弹窗实例（复用同一个弹窗）
 let globalPopup: PromptPopup | null = null
 
 // 是否正在分析中（防止重复点击）
 let isAnalyzing = false
+
+function getDynamicSyncBudget(): { nearby: number; probe: number } {
+  const activeCount = overlayMap.size
+
+  if (activeCount >= CONFIG.OVERLAY_BUDGET_LOW_THRESHOLD) {
+    return {
+      nearby: CONFIG.LOW_SYNC_UPDATES_PER_FRAME,
+      probe: CONFIG.LOW_PROBE_UPDATES_PER_FRAME,
+    }
+  }
+
+  if (activeCount >= CONFIG.OVERLAY_BUDGET_MID_THRESHOLD) {
+    return {
+      nearby: CONFIG.MID_SYNC_UPDATES_PER_FRAME,
+      probe: CONFIG.MID_PROBE_UPDATES_PER_FRAME,
+    }
+  }
+
+  return {
+    nearby: CONFIG.MAX_SYNC_UPDATES_PER_FRAME,
+    probe: CONFIG.MAX_PROBE_UPDATES_PER_FRAME,
+  }
+}
+
+/**
+ * 统一调度 overlay 位置更新（避免多实例重复监听）
+ */
+function scheduleOverlayPositionSync(): void {
+  if (document.visibilityState === 'hidden') return
+  if (overlayMap.size === 0) return
+  if (positionSyncRafId !== null) return
+  positionSyncRafId = window.requestAnimationFrame(() => {
+    positionSyncRafId = null
+    rebalanceOverlayPool()
+    const entries = Array.from(overlayMap.entries())
+    if (entries.length === 0) return
+    const budget = getDynamicSyncBudget()
+
+    // 1) 非 idle 覆盖层优先同步（交互中）
+    for (const [, overlay] of entries) {
+      if (overlay.getState() !== 'idle') {
+        overlay.syncPosition()
+      }
+    }
+
+    // 2) 近视口 idle 覆盖层按预算同步
+    let nearbyBudget = budget.nearby
+    for (const [img, overlay] of entries) {
+      if (nearbyBudget <= 0) break
+      if (overlay.getState() !== 'idle') continue
+      if (!overlay.isInViewport() && !isNearViewport(img)) continue
+      overlay.syncPosition()
+      nearbyBudget -= 1
+    }
+
+    // 3) 远端 idle 覆盖层按小预算轮询探测，避免滚动到新区域时延迟过大
+    const idleFarEntries = entries.filter(([img, overlay]) => {
+      if (overlay.getState() !== 'idle') return false
+      return !overlay.isInViewport() && !isNearViewport(img)
+    })
+    if (idleFarEntries.length > 0) {
+      let probeBudget = Math.min(budget.probe, idleFarEntries.length)
+      let index = overlayProbeCursor % idleFarEntries.length
+      while (probeBudget > 0) {
+        const [, overlay] = idleFarEntries[index]
+        overlay.syncPosition()
+        probeBudget -= 1
+        index = (index + 1) % idleFarEntries.length
+      }
+      overlayProbeCursor = index
+    } else {
+      overlayProbeCursor = 0
+    }
+  })
+}
+
+/**
+ * 启动全局位置同步监听（仅注册一次）
+ */
+function startGlobalPositionSync(): void {
+  const handler = () => scheduleOverlayPositionSync()
+  window.addEventListener('scroll', handler, { passive: true })
+  document.addEventListener('scroll', handler, { passive: true, capture: true })
+  window.addEventListener('resize', handler)
+  window.visualViewport?.addEventListener('scroll', handler, { passive: true })
+  window.visualViewport?.addEventListener('resize', handler)
+}
+
+/**
+ * 调度清理已从 DOM 移除的图片 overlay
+ */
+function scheduleOverlayCleanup(): void {
+  if (overlayCleanupRafId !== null) return
+  overlayCleanupRafId = window.requestAnimationFrame(() => {
+    overlayCleanupRafId = null
+
+    // 清理待观察队列里已经失效的图片
+    pendingImages.forEach((img) => {
+      if (!img.isConnected) {
+        pendingImages.delete(img)
+        imageVisibilityObserver?.unobserve(img)
+      }
+    })
+
+    let hasOverlayRemoved = false
+    overlayMap.forEach((overlay, img) => {
+      if (!img.isConnected) {
+        overlay.destroy()
+        overlayMap.delete(img)
+        hasOverlayRemoved = true
+      }
+    })
+
+    if (hasOverlayRemoved) {
+      promotePendingImages(12)
+    }
+  })
+}
+
+/**
+ * 启动 overlay 生命周期监听（单例）
+ */
+function startOverlayLifecycleObserver(): void {
+  if (overlayLifecycleObserver) return
+  overlayLifecycleObserver = new MutationObserver(() => {
+    scheduleOverlayCleanup()
+  })
+  overlayLifecycleObserver.observe(document.body, {
+    childList: true,
+    subtree: true,
+  })
+}
+
+function ensureImageVisibilityObserver(): void {
+  if (imageVisibilityObserver) return
+  imageVisibilityObserver = new IntersectionObserver(
+    (entries) => {
+      for (const entry of entries) {
+        if (!entry.isIntersecting) continue
+        const img = entry.target as HTMLImageElement
+        if (!pendingImages.has(img)) continue
+
+        if (createOverlayForImage(img)) {
+          pendingImages.delete(img)
+          imageVisibilityObserver?.unobserve(img)
+        }
+      }
+    },
+    {
+      root: null,
+      rootMargin: '300px',
+      threshold: 0.01,
+    }
+  )
+}
+
+function isNearViewport(img: HTMLImageElement): boolean {
+  const rect = img.getBoundingClientRect()
+  const margin = 300
+  return (
+    rect.bottom >= -margin &&
+    rect.top <= window.innerHeight + margin &&
+    rect.right >= -margin &&
+    rect.left <= window.innerWidth + margin
+  )
+}
+
+function createOverlayForImage(img: HTMLImageElement): boolean {
+  if (!img.isConnected) return false
+  if (overlayMap.has(img)) return true
+  if (overlayMap.size >= CONFIG.MAX_ACTIVE_OVERLAYS) return false
+
+  const overlay = new ButtonOverlay(img)
+  overlay.onClick(() => {
+    handleButtonClick(img, overlay)
+  })
+  overlayMap.set(img, overlay)
+  scheduleOverlayPositionSync()
+  return true
+}
+
+function promotePendingImages(maxPromote: number): void {
+  if (overlayMap.size >= CONFIG.MAX_ACTIVE_OVERLAYS) return
+  let promoted = 0
+
+  for (const img of pendingImages) {
+    if (promoted >= maxPromote) break
+    if (overlayMap.size >= CONFIG.MAX_ACTIVE_OVERLAYS) break
+    if (!img.isConnected) {
+      pendingImages.delete(img)
+      imageVisibilityObserver?.unobserve(img)
+      continue
+    }
+    if (!isNearViewport(img)) continue
+    if (createOverlayForImage(img)) {
+      pendingImages.delete(img)
+      imageVisibilityObserver?.unobserve(img)
+      promoted += 1
+    }
+  }
+}
+
+/**
+ * 维持近视口 overlay 池：回收远端 idle overlay，降低滚动时更新成本
+ */
+function rebalanceOverlayPool(): void {
+  if (overlayMap.size <= CONFIG.MAX_NEARBY_OVERLAYS) return
+
+  const candidates: Array<[HTMLImageElement, ButtonOverlay]> = []
+  overlayMap.forEach((overlay, img) => {
+    if (overlay.getState() !== 'idle') return
+    if (isNearViewport(img)) return
+    candidates.push([img, overlay])
+  })
+
+  for (const [img, overlay] of candidates) {
+    if (overlayMap.size <= CONFIG.MAX_NEARBY_OVERLAYS) break
+    overlay.destroy()
+    overlayMap.delete(img)
+
+    if (img.isConnected && pendingImages.size < CONFIG.MAX_PENDING_IMAGES) {
+      ensureImageVisibilityObserver()
+      pendingImages.add(img)
+      imageVisibilityObserver?.observe(img)
+    }
+  }
+}
 
 /**
  * 获取或创建全局弹窗实例
@@ -107,20 +347,40 @@ async function getImageDataUrl(img: HTMLImageElement): Promise<string> {
   if (img.src.startsWith('data:')) {
     return img.src
   }
-  
-  // 尝试通过 canvas 获取图片数据
-  try {
+
+  const getScaledSize = (width: number, height: number) => {
+    const maxEdge = CONFIG.MAX_ANALYZE_IMAGE_EDGE
+    const maxCurrentEdge = Math.max(width, height)
+    if (maxCurrentEdge <= maxEdge) {
+      return { width, height }
+    }
+    const ratio = maxEdge / maxCurrentEdge
+    return {
+      width: Math.max(1, Math.round(width * ratio)),
+      height: Math.max(1, Math.round(height * ratio)),
+    }
+  }
+
+  const drawToDataURL = (
+    source: CanvasImageSource,
+    sourceWidth: number,
+    sourceHeight: number
+  ): string => {
+    const { width, height } = getScaledSize(sourceWidth, sourceHeight)
     const canvas = document.createElement('canvas')
-    canvas.width = img.naturalWidth
-    canvas.height = img.naturalHeight
-    
+    canvas.width = width
+    canvas.height = height
     const ctx = canvas.getContext('2d')
     if (!ctx) {
       throw new Error('无法创建 canvas 上下文')
     }
-    
-    ctx.drawImage(img, 0, 0)
+    ctx.drawImage(source, 0, 0, width, height)
     return canvas.toDataURL('image/jpeg', 0.9)
+  }
+  
+  // 尝试通过 canvas 获取图片数据
+  try {
+    return drawToDataURL(img, img.naturalWidth, img.naturalHeight)
   } catch (error) {
     logger.warn('[Content Script] Canvas 转换失败，尝试直接 fetch:', error)
     
@@ -136,10 +396,23 @@ async function getImageDataUrl(img: HTMLImageElement): Promise<string> {
     
     const blob = await response.blob()
     return new Promise((resolve, reject) => {
-      const reader = new FileReader()
-      reader.onloadend = () => resolve(reader.result as string)
-      reader.onerror = () => reject(new Error('读取图片失败'))
-      reader.readAsDataURL(blob)
+      const blobUrl = URL.createObjectURL(blob)
+      const tempImg = new Image()
+      tempImg.onload = () => {
+        try {
+          const dataUrl = drawToDataURL(tempImg, tempImg.naturalWidth, tempImg.naturalHeight)
+          resolve(dataUrl)
+        } catch (drawError) {
+          reject(drawError)
+        } finally {
+          URL.revokeObjectURL(blobUrl)
+        }
+      }
+      tempImg.onerror = () => {
+        URL.revokeObjectURL(blobUrl)
+        reject(new Error('读取图片失败'))
+      }
+      tempImg.src = blobUrl
     })
   }
 }
@@ -150,53 +423,23 @@ async function getImageDataUrl(img: HTMLImageElement): Promise<string> {
  */
 function handleImageDetected(img: HTMLImageElement): void {
   // 检查是否已存在按钮覆盖层
-  if (overlayMap.has(img)) {
+  if (overlayMap.has(img) || pendingImages.has(img)) {
     return
   }
-  
-  // 创建按钮覆盖层
-  const overlay = new ButtonOverlay(img)
-  
-  // 绑定点击事件
-  overlay.onClick(() => {
-    handleButtonClick(img, overlay)
-  })
-  
-  // 存储映射关系
-  overlayMap.set(img, overlay)
-  
-  // 监听图片移除，清理资源
-  observeImageRemoval(img, overlay)
-}
 
-/**
- * 监听图片元素是否从 DOM 中移除
- * @param img - 要监听的图片元素
- * @param overlay - 对应的按钮覆盖层
- */
-function observeImageRemoval(
-  img: HTMLImageElement,
-  overlay: ButtonOverlay
-): void {
-  const observer = new MutationObserver((mutations) => {
-    mutations.forEach((mutation) => {
-      mutation.removedNodes.forEach((node) => {
-        // 检查移除的节点是否是目标图片或其包含目标图片
-        if (node === img || (node instanceof Element && node.contains(img))) {
-          // 图片被移除，销毁按钮覆盖层
-          overlay.destroy()
-          overlayMap.delete(img)  // 删除Map条目，防止内存泄漏
-          observer.disconnect()
-        }
-      })
-    })
-  })
-  
-  // 监听 document.body 的子节点变化
-  observer.observe(document.body, {
-    childList: true,
-    subtree: true,
-  })
+  // 尽量优先创建近视口图片，减少一次性大量创建
+  if (isNearViewport(img) && createOverlayForImage(img)) {
+    return
+  }
+
+  // 超过待观察上限时，直接跳过最远的一批，避免集合无限增长
+  if (pendingImages.size >= CONFIG.MAX_PENDING_IMAGES) {
+    return
+  }
+
+  ensureImageVisibilityObserver()
+  pendingImages.add(img)
+  imageVisibilityObserver?.observe(img)
 }
 
 /**
@@ -207,8 +450,9 @@ function init(): void {
   
   // 创建图片检测器
   const detector = new ImageDetector({
-    minWidth: 64,
-    minHeight: 64,
+    minWidth: CONFIG.IMAGE_MIN_SIZE,
+    minHeight: CONFIG.IMAGE_MIN_SIZE,
+    minArea: CONFIG.IMAGE_MIN_AREA,
     observeMutations: true,
   })
   
@@ -217,13 +461,37 @@ function init(): void {
   
   // 启动检测器
   detector.start()
+
+  // 启动全局位置同步与生命周期清理（单例）
+  startGlobalPositionSync()
+  startOverlayLifecycleObserver()
+  ensureImageVisibilityObserver()
   
   // 监听来自 popup 或 background 的消息
   chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     if (message.type === 'GET_PAGE_IMAGES') {
       // 返回页面中所有符合条件的图片
       const images = Array.from(document.querySelectorAll('img'))
-        .filter((img) => img.src && img.naturalWidth >= 64 && img.naturalHeight >= 64)
+        .filter((img) => {
+          if (!img.src) return false
+          const meetsSize =
+            img.naturalWidth >= CONFIG.IMAGE_MIN_SIZE &&
+            img.naturalHeight >= CONFIG.IMAGE_MIN_SIZE &&
+            img.naturalWidth * img.naturalHeight >= CONFIG.IMAGE_MIN_AREA
+          if (!meetsSize) return false
+
+          try {
+            const protocol = new URL(img.currentSrc || img.src, window.location.href).protocol
+            return (
+              protocol !== 'chrome-extension:' &&
+              protocol !== 'moz-extension:' &&
+              protocol !== 'chrome:' &&
+              protocol !== 'about:'
+            )
+          } catch {
+            return true
+          }
+        })
         .map((img) => ({
           src: img.src,
           alt: img.alt || '',

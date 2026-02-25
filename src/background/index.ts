@@ -47,17 +47,21 @@ function parseDataURL(dataURL: string): { mimeType: string; base64: string } {
   }
 }
 
-/**
- * 创建超时 Promise
- * @param ms - 超时时间（毫秒）
- * @returns 永远不会 resolve 的 Promise（会 reject）
- */
-function createTimeoutPromise(ms: number): Promise<never> {
-  return new Promise((_, reject) => {
-    setTimeout(() => {
+async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  let timeoutId: ReturnType<typeof setTimeout> | null = null
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => {
       reject(new Error(`请求超时，服务器在 ${ms / 1000} 秒内未响应，请稍后重试`))
     }, ms)
   })
+
+  try {
+    return await Promise.race([promise, timeoutPromise])
+  } finally {
+    if (timeoutId !== null) {
+      clearTimeout(timeoutId)
+    }
+  }
 }
 
 /**
@@ -119,11 +123,7 @@ async function handleAnalyzeImage(imageData: string): Promise<AnalyzeResponse> {
         timeoutMs
       )
       
-      // 使用 Promise.race 实现超时控制
-      prompt = await Promise.race([
-        apiPromise,
-        createTimeoutPromise(timeoutMs),
-      ])
+      prompt = await withTimeout(apiPromise, timeoutMs)
     } else {
       // 调用 OpenAI API（timeout 参数是秒）
       const apiPromise = openaiReversePrompt(
@@ -136,11 +136,7 @@ async function handleAnalyzeImage(imageData: string): Promise<AnalyzeResponse> {
         settings.timeout || 180 // timeout 参数是秒
       )
       
-      // 使用 Promise.race 实现超时控制
-      prompt = await Promise.race([
-        apiPromise,
-        createTimeoutPromise(timeoutMs),
-      ])
+      prompt = await withTimeout(apiPromise, timeoutMs)
     }
     
     // 6. 压缩缩略图并保存到历史记录
@@ -153,8 +149,8 @@ async function handleAnalyzeImage(imageData: string): Promise<AnalyzeResponse> {
       // 转回 dataURL 作为缩略图
       thumbnailUrl = await imageToDataURL(compressedBlob)
     } catch (error) {
-      logger.warn('Failed to compress thumbnail, using original:', error)
-      thumbnailUrl = imageData // 压缩失败时使用原图
+      logger.warn('Failed to compress thumbnail, skipping thumbnail:', error)
+      thumbnailUrl = ''
     }
 
     const historyItem: HistoryItem = {

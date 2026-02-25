@@ -7,7 +7,7 @@ import { t } from '../utils/i18n'
 
 // API 配置常量
 const GEMINI_API_ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
-const DEFAULT_TIMEOUT = 120000; // 默认超时时间：120秒（毫秒）
+const DEFAULT_TIMEOUT = 180000; // 默认超时时间：180秒（毫秒）
 
 // 支持的语言代码类型
 type LanguageCode = 'auto' | 'zh' | 'en' | 'ja' | 'ko';
@@ -116,7 +116,7 @@ Please output the prompt in English.`,
  * @param mimeType 图片的 MIME 类型（如 image/jpeg, image/png, image/webp）
  * @param language 输出语言代码（auto/zh/en/ja/ko）
  * @param apiKey Gemini API 密钥
- * @param timeout 超时时间（毫秒），默认 120 秒
+ * @param timeout 超时时间（毫秒），默认 180 秒
  * @returns 生成的逆向提示词
  * @throws Error 当 API 调用失败或响应格式错误时抛出异常
  */

@@ -59,7 +59,7 @@ ${langInstruction}`
  * @param apiKey - OpenAI API Key
  * @param baseUrl - API 基础 URL（支持 OpenAI 兼容 API）
  * @param model - 使用的模型，默认 gpt-4o
- * @param timeout - 请求超时时间（秒），默认 120 秒
+ * @param timeout - 请求超时时间（秒），默认 180 秒
  * @returns 生成的提示词文本
  * @throws 当 API 调用失败时抛出用户友好的错误信息
  */
@@ -70,7 +70,7 @@ export async function reversePrompt(
   apiKey: string,
   baseUrl: string,
   model: string = 'gpt-4o',
-  timeout: number = 120
+  timeout: number = 180
 ): Promise<string> {
   // 构建完整的 API URL
   const apiUrl = `${baseUrl.replace(/\/$/, '')}/chat/completions`

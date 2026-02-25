@@ -9,10 +9,12 @@ import { CONFIG } from '../constants'
 
 // 图片检测器的配置选项接口
 interface ImageDetectorOptions {
-  // 最小宽度阈值（默认64px）
+  // 最小宽度阈值
   minWidth?: number;
-  // 最小高度阈值（默认64px）
+  // 最小高度阈值
   minHeight?: number;
+  // 最小面积阈值（默认12000px²）
+  minArea?: number;
   // 是否监听动态加载的图片（默认true）
   observeMutations?: boolean;
 }
@@ -57,8 +59,9 @@ export class ImageDetector {
    */
   constructor(options: ImageDetectorOptions = {}) {
     this.options = {
-      minWidth: options.minWidth ?? 64,      // 默认最小宽度64像素
-      minHeight: options.minHeight ?? 64,    // 默认最小高度64像素
+      minWidth: options.minWidth ?? CONFIG.IMAGE_MIN_SIZE,      // 默认最小宽度
+      minHeight: options.minHeight ?? CONFIG.IMAGE_MIN_SIZE,    // 默认最小高度
+      minArea: options.minArea ?? CONFIG.IMAGE_MIN_AREA,        // 默认最小面积
       observeMutations: options.observeMutations ?? true,  // 默认开启动态监听
     };
   }
@@ -172,10 +175,16 @@ export class ImageDetector {
       return;
     }
 
+    // 过滤浏览器扩展等非网页图片来源，避免给其他插件UI加按钮
+    if (this.shouldSkipBySource(img)) {
+      return;
+    }
+
     // 检查图片尺寸是否满足最小要求
     const meetsRequirements = 
       img.naturalWidth >= this.options.minWidth &&
-      img.naturalHeight >= this.options.minHeight;
+      img.naturalHeight >= this.options.minHeight &&
+      img.naturalWidth * img.naturalHeight >= this.options.minArea;
 
     if (meetsRequirements) {
       // 将图片标记为已处理
@@ -189,6 +198,30 @@ export class ImageDetector {
           console.error('[ImageDetector] 回调函数执行出错:', error);
         }
       });
+    }
+  }
+
+  /**
+   * 基于图片来源过滤不可分析资源
+   * 主要用于排除其他浏览器插件注入的图片
+   */
+  private shouldSkipBySource(img: HTMLImageElement): boolean {
+    const src = img.currentSrc || img.src;
+    if (!src) {
+      return true;
+    }
+
+    try {
+      const protocol = new URL(src, window.location.href).protocol;
+      return (
+        protocol === 'chrome-extension:' ||
+        protocol === 'moz-extension:' ||
+        protocol === 'chrome:' ||
+        protocol === 'about:'
+      );
+    } catch {
+      // URL 解析失败时保守放行，避免误伤正常页面图片
+      return false;
     }
   }
 
