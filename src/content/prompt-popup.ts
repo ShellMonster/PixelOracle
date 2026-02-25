@@ -49,6 +49,17 @@ export class PromptPopup {
   // 点击外部关闭的处理函数
   private outsideClickHandler: (e: MouseEvent) => void;
 
+  // 当前锚点元素（用于跟随定位）
+  private anchorElement: HTMLElement | null = null;
+  private positionSyncRafId: number | null = null;
+  private positionSyncHandler: () => void;
+  private isPositionSyncing = false;
+  private isTemporarilyHidden = false;
+
+  // 加载态计时器
+  private loadingTimerId: number | null = null;
+  private loadingStartedAt = 0;
+
   /**
    * 构造函数
    */
@@ -62,6 +73,7 @@ export class PromptPopup {
     
     // 绑定外部点击处理函数
     this.outsideClickHandler = this.handleOutsideClick.bind(this);
+    this.positionSyncHandler = this.schedulePositionSync.bind(this);
     
     // 初始化
     this.popup = this.createPopup();
@@ -153,7 +165,7 @@ export class PromptPopup {
     
     const title = document.createElement('h3');
     title.className = 'popup-title';
-    title.textContent = t('prompt');
+    title.textContent = t('reversePrompt');
     
     header.appendChild(title);
     header.appendChild(this.closeButton);
@@ -494,6 +506,7 @@ export class PromptPopup {
    * @param prompt - 要显示的提示词内容
    */
   public show(anchorElement: HTMLElement, prompt: string): void {
+    this.anchorElement = anchorElement;
     this.currentPrompt = prompt;
     this.promptText.textContent = prompt;
     
@@ -503,6 +516,7 @@ export class PromptPopup {
     // 显示容器
     this.container.style.display = 'block';
     this.container.style.pointerEvents = 'auto';
+    this.isTemporarilyHidden = false;
     
     // 触发动画
     requestAnimationFrame(() => {
@@ -515,12 +529,17 @@ export class PromptPopup {
     setTimeout(() => {
       document.addEventListener('click', this.outsideClickHandler);
     }, 0);
+
+    this.startPositionSync();
   }
 
   /**
    * 隐藏弹窗
    */
   public hide(): void {
+    this.stopLoadingTimer();
+    this.stopPositionSync();
+
     if (!this.isVisible) {
       return;
     }
@@ -538,6 +557,7 @@ export class PromptPopup {
     
     // 移除外部点击监听
     document.removeEventListener('click', this.outsideClickHandler);
+    this.anchorElement = null;
     
     // 触发关闭回调
     if (this.onCloseCallback) {
@@ -551,6 +571,10 @@ export class PromptPopup {
    */
   private updatePosition(anchorElement: HTMLElement): void {
     const anchorRect = anchorElement.getBoundingClientRect();
+    this.updatePositionByRect(anchorRect);
+  }
+
+  private updatePositionByRect(anchorRect: DOMRect): void {
     const popupWidth = 320;
     const popupHeight = Math.min(400, this.popup.offsetHeight || 200);
     
@@ -595,16 +619,17 @@ export class PromptPopup {
   }
 
   /**
-   * 显示加载状态
+   * 显示加载状态（可指定请求起始时间）
+   * @param startedAt - 请求开始时间戳（毫秒）
    */
-  public showLoading(): void {
-    this.promptText.innerHTML = `
-      <div class="loading-indicator">
-        <span>${t('analyzingImage')}</span>
-      </div>
-    `;
-    
-    // 禁用复制按钮
+  public showLoadingWithStartTime(startedAt: number): void {
+    this.stopLoadingTimer();
+    this.loadingStartedAt = startedAt;
+    this.renderLoading();
+    this.loadingTimerId = window.setInterval(() => {
+      this.renderLoading();
+    }, 1000);
+
     this.copyButton.disabled = true;
     this.copyButton.style.opacity = '0.5';
     this.copyButton.style.cursor = 'not-allowed';
@@ -615,6 +640,7 @@ export class PromptPopup {
    * @param error - 错误信息
    */
   public showError(error: string): void {
+    this.stopLoadingTimer();
     this.promptText.innerHTML = `
       <div class="error-message">
         ${error}
@@ -632,6 +658,7 @@ export class PromptPopup {
    * @param prompt - 提示词文本
    */
   public setPrompt(prompt: string): void {
+    this.stopLoadingTimer();
     this.currentPrompt = prompt;
     this.promptText.textContent = prompt;
     
@@ -659,12 +686,103 @@ export class PromptPopup {
    * 销毁组件
    */
   public destroy(): void {
+    this.stopLoadingTimer();
+    this.stopPositionSync();
+
     // 移除外部点击监听
     document.removeEventListener('click', this.outsideClickHandler);
     
     // 移除容器
     if (this.container && this.container.parentNode) {
       this.container.parentNode.removeChild(this.container);
+    }
+  }
+
+  private renderLoading(): void {
+    const elapsedSeconds = Math.max(0, Math.floor((Date.now() - this.loadingStartedAt) / 1000));
+    this.promptText.innerHTML = `
+      <div class="loading-indicator">
+        <span>${t('analyzingImage')} (${elapsedSeconds}${t('seconds')})</span>
+      </div>
+    `;
+  }
+
+  private stopLoadingTimer(): void {
+    if (this.loadingTimerId !== null) {
+      clearInterval(this.loadingTimerId);
+      this.loadingTimerId = null;
+    }
+  }
+
+  private schedulePositionSync(): void {
+    if (!this.isVisible) return;
+    if (!this.anchorElement) return;
+    if (this.positionSyncRafId !== null) return;
+
+    this.positionSyncRafId = window.requestAnimationFrame(() => {
+      this.positionSyncRafId = null;
+      if (!this.isVisible || !this.anchorElement) return;
+      if (!this.anchorElement.isConnected) {
+        this.hide();
+        return;
+      }
+
+      const anchorRect = this.anchorElement.getBoundingClientRect();
+      if (!this.isAnchorInViewport(anchorRect)) {
+        this.setTemporaryHidden(true);
+        return;
+      }
+
+      this.setTemporaryHidden(false);
+      this.updatePositionByRect(anchorRect);
+    });
+  }
+
+  private isAnchorInViewport(rect: DOMRect): boolean {
+    if (rect.width < 2 || rect.height < 2) {
+      return false;
+    }
+    return (
+      rect.bottom > 0 &&
+      rect.right > 0 &&
+      rect.top < window.innerHeight &&
+      rect.left < window.innerWidth
+    );
+  }
+
+  private setTemporaryHidden(hidden: boolean): void {
+    if (this.isTemporarilyHidden === hidden) return;
+    this.isTemporarilyHidden = hidden;
+    if (hidden) {
+      this.container.style.display = 'none';
+      this.container.style.pointerEvents = 'none';
+      return;
+    }
+    this.container.style.display = 'block';
+    this.container.style.pointerEvents = 'auto';
+  }
+
+  private startPositionSync(): void {
+    if (this.isPositionSyncing) return;
+    this.isPositionSyncing = true;
+    window.addEventListener('scroll', this.positionSyncHandler, { passive: true });
+    document.addEventListener('scroll', this.positionSyncHandler, { passive: true, capture: true });
+    window.addEventListener('resize', this.positionSyncHandler);
+    window.visualViewport?.addEventListener('scroll', this.positionSyncHandler, { passive: true });
+    window.visualViewport?.addEventListener('resize', this.positionSyncHandler);
+  }
+
+  private stopPositionSync(): void {
+    if (!this.isPositionSyncing) return;
+    this.isPositionSyncing = false;
+    window.removeEventListener('scroll', this.positionSyncHandler);
+    document.removeEventListener('scroll', this.positionSyncHandler, true);
+    window.removeEventListener('resize', this.positionSyncHandler);
+    window.visualViewport?.removeEventListener('scroll', this.positionSyncHandler);
+    window.visualViewport?.removeEventListener('resize', this.positionSyncHandler);
+    if (this.positionSyncRafId !== null) {
+      cancelAnimationFrame(this.positionSyncRafId);
+      this.positionSyncRafId = null;
     }
   }
 }

@@ -10,10 +10,11 @@ import {
   PowerOff,
   ChevronDown,
   Sparkles,
-  Clock
+  Clock,
+  Link as LinkIcon
 } from 'lucide-react'
 import { useSettingsStore } from '../store/settingsStore'
-import { getHistory, clearHistory, type HistoryItem } from '../services/storage'
+import { getHistory, clearHistory, deleteHistoryItem, type HistoryItem } from '../services/storage'
 import { t } from '../utils/i18n'
 
 // Toast提示组件
@@ -60,7 +61,19 @@ function truncateText(text: string, maxLength: number): string {
   return text.substring(0, maxLength) + '...'
 }
 
+function getSourceLinkText(sourceUrl?: string): string {
+  if (!sourceUrl) return ''
+  try {
+    const url = new URL(sourceUrl)
+    return `${url.hostname}${url.pathname === '/' ? '' : url.pathname}`
+  } catch {
+    return sourceUrl
+  }
+}
+
 function App() {
+  const extensionVersion = chrome.runtime.getManifest().version || '0.0.0'
+
   // 从store获取设置
   const { 
     apiProvider, 
@@ -131,6 +144,16 @@ function App() {
     }
   }
 
+  // 删除单条历史记录
+  const handleDeleteHistoryItem = async (md5: string) => {
+    try {
+      await deleteHistoryItem(md5)
+      setHistory((prev) => prev.filter((item) => item.md5 !== md5))
+    } catch (error) {
+      showToast(t('errorClearFailed'), 'error')
+    }
+  }
+
   // 切换API Provider
   const handleProviderChange = async (provider: 'gemini' | 'openai') => {
     await setApiProvider(provider)
@@ -160,19 +183,24 @@ function App() {
   return (
     <div className="w-80 bg-gray-50 min-h-96 flex flex-col">
       {/* 头部 */}
-      <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-2">
+      <header className="bg-white border-b border-gray-200 px-4 py-3 flex items-center">
+        <div className="flex items-center gap-2 min-w-0 flex-1">
           <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
             <Sparkles className="w-5 h-5 text-white" />
           </div>
-          <div>
+          <div className="min-w-0 flex-1">
             <h1 className="text-sm font-bold text-gray-900">{t("appTitle")}</h1>
-            <p className="text-xs text-gray-500">PixelOracle</p>
+            <div className="flex items-center justify-between pr-2">
+              <p className="text-[10px] text-gray-500">PixelOracle</p>
+              <span className="text-[10px] text-gray-400 select-none">
+                v{extensionVersion}
+              </span>
+            </div>
           </div>
         </div>
         <button
           onClick={openOptionsPage}
-          className="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"
+          className="ml-2 p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"
           title={t("openSettings")}
         >
           <Settings className="w-5 h-5" />
@@ -280,11 +308,13 @@ function App() {
                 >
                   {/* 缩略图 */}
                   <div className="w-8 h-8 rounded-lg overflow-hidden bg-gray-200 flex-shrink-0 border border-gray-200">
-                    {item.thumbnailUrl ? (
+                    {(item.thumbnailUrl || item.sourceUrl) ? (
                       <img
-                        src={item.thumbnailUrl}
+                        src={item.thumbnailUrl || item.sourceUrl}
                         alt="thumbnail"
                         className="w-full h-full object-cover"
+                        loading="lazy"
+                        referrerPolicy="no-referrer"
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
@@ -298,16 +328,45 @@ function App() {
                     <p className="text-sm text-gray-700 truncate">
                       {truncateText(item.prompt, 35)}
                     </p>
-                    <div className="flex items-center gap-1 mt-0.5">
-                      <Clock className="w-3 h-3 text-gray-400" />
-                      <span className="text-xs text-gray-400">
-                        {formatTime(item.createdAt)}
-                      </span>
-                    </div>
+                    {item.sourceUrl ? (
+                      <div className="flex items-center justify-between gap-2 mt-0.5">
+                        <a
+                          href={item.sourceUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          className="min-w-0 inline-flex items-center gap-1 text-xs text-blue-600 hover:text-blue-700 hover:underline"
+                          title={item.sourceUrl}
+                        >
+                          <LinkIcon className="w-3 h-3 flex-shrink-0" />
+                          <span className="truncate">{truncateText(getSourceLinkText(item.sourceUrl), 24)}</span>
+                        </a>
+                        <span className="text-xs text-gray-400 flex-shrink-0">
+                          {formatTime(item.createdAt)}
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1 mt-0.5">
+                        <Clock className="w-3 h-3 text-gray-400" />
+                        <span className="text-xs text-gray-400">
+                          {formatTime(item.createdAt)}
+                        </span>
+                      </div>
+                    )}
                   </div>
 
-                  {/* 复制图标 */}
-                  <div className="flex-shrink-0">
+                  {/* 操作图标 */}
+                  <div className="flex-shrink-0 flex items-center gap-1">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleDeleteHistoryItem(item.md5)
+                      }}
+                      className="p-1 rounded text-gray-300 hover:text-red-500 hover:bg-red-50 transition-colors"
+                      title={t('clear')}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                     {copiedId === item.md5 ? (
                       <Check className="w-4 h-4 text-green-500" />
                     ) : (

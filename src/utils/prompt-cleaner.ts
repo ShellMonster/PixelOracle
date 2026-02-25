@@ -5,8 +5,6 @@
  * 3) 最后再做纯文本兜底，避免把整段结构化文本直接展示
  */
 
-const MAX_PROMPT_LENGTH = 600
-
 export type PreferredLanguage = 'zh' | 'en' | 'ja' | 'ko'
 
 export function extractPromptFromJsonOrText(
@@ -182,8 +180,7 @@ function looksLikeStructuredPayload(text: string): boolean {
 }
 
 function truncatePrompt(text: string): string {
-  if (text.length <= MAX_PROMPT_LENGTH) return text
-  return text.slice(0, MAX_PROMPT_LENGTH).trim()
+  return text.trim()
 }
 
 function cleanupText(value: string): string {
@@ -199,4 +196,3 @@ function cleanupText(value: string): string {
   text = text.replace(/^["“”'`]+|["“”'`]+$/g, '')
   return text.trim()
 }
-

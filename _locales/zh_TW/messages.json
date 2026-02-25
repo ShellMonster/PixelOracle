@@ -7,7 +7,6 @@
     "message": "使用AI視覺技術分析圖片並提取AI提示詞",
     "description": "擴充功能描述"
   },
-
   "timeJustNow": {
     "message": "剛剛"
   },
@@ -27,7 +26,6 @@
       }
     }
   },
-
   "errorLoadHistory": {
     "message": "載入歷史記錄失敗"
   },
@@ -51,6 +49,12 @@
   },
   "errorOpenaiBaseUrlRequired": {
     "message": "需要OpenAI Base URL"
+  },
+  "errorOpenaiModelRequired": {
+    "message": "需要OpenAI模型ID"
+  },
+  "errorGeminiBaseUrlRequired": {
+    "message": "需要Gemini Base URL"
   },
   "errorInvalidUrlProtocol": {
     "message": "無效的URL協定，僅允許http和https"
@@ -82,7 +86,6 @@
   "errorAnalysisFailed": {
     "message": "圖片分析失敗"
   },
-
   "copiedToClipboard": {
     "message": "已複製到剪貼簿"
   },
@@ -98,7 +101,6 @@
   "copied": {
     "message": "已複製"
   },
-
   "extensionDisabled": {
     "message": "擴充功能已停用"
   },
@@ -119,7 +121,6 @@
       }
     }
   },
-
   "appTitle": {
     "message": "PixelOracle"
   },
@@ -177,8 +178,14 @@
   "hintGeminiApiKey": {
     "message": "從Google AI Studio取得您的API金鑰"
   },
+  "hintGeminiBaseUrl": {
+    "message": "Gemini建議僅填寫網域；若填 /v1beta 也可相容"
+  },
   "hintOpenaiApi": {
     "message": "輸入您的OpenAI API金鑰和Base URL"
+  },
+  "hintOpenaiModel": {
+    "message": "輸入用於OpenAI相容介面且支援視覺能力的模型ID"
   },
   "advancedSettings": {
     "message": "進階設定"
@@ -195,7 +202,6 @@
   "hintTimeout": {
     "message": "等待API回應的最長時間"
   },
-
   "langAuto": {
     "message": "自動偵測"
   },
@@ -211,7 +217,6 @@
   "langKo": {
     "message": "韓文"
   },
-
   "saving": {
     "message": "儲存中..."
   },
@@ -236,7 +241,6 @@
   "copy": {
     "message": "複製"
   },
-
   "prompt": {
     "message": "提示詞"
   },
@@ -249,7 +253,6 @@
   "confirmClearHistory": {
     "message": "確定要清除所有歷史記錄嗎？"
   },
-
   "usageTips": {
     "message": "使用提示"
   },
@@ -261,5 +264,11 @@
   },
   "tip3": {
     "message": "在擴充功能彈窗中查看您的分析歷史"
+  },
+  "errorGeminiModelRequired": {
+    "message": "需要Gemini模型ID"
+  },
+  "warnGeminiVisionModel": {
+    "message": "請確保所選Gemini模型支援視覺輸入"
   }
 }

@@ -7,7 +7,6 @@
     "message": "Analyze images and extract AI prompts with AI vision technology",
     "description": "Description of the extension"
   },
-
   "timeJustNow": {
     "message": "Just now"
   },
@@ -27,7 +26,6 @@
       }
     }
   },
-
   "errorLoadHistory": {
     "message": "Failed to load history"
   },
@@ -51,6 +49,12 @@
   },
   "errorOpenaiBaseUrlRequired": {
     "message": "OpenAI Base URL is required"
+  },
+  "errorOpenaiModelRequired": {
+    "message": "OpenAI Model ID is required"
+  },
+  "errorGeminiBaseUrlRequired": {
+    "message": "Gemini Base URL is required"
   },
   "errorInvalidUrlProtocol": {
     "message": "Invalid URL protocol. Only http and https are allowed"
@@ -82,7 +86,6 @@
   "errorAnalysisFailed": {
     "message": "Image analysis failed"
   },
-
   "copiedToClipboard": {
     "message": "Copied to clipboard"
   },
@@ -98,7 +101,6 @@
   "copied": {
     "message": "Copied"
   },
-
   "extensionDisabled": {
     "message": "Extension is disabled"
   },
@@ -119,7 +121,6 @@
       }
     }
   },
-
   "appTitle": {
     "message": "PixelOracle"
   },
@@ -177,8 +178,14 @@
   "hintGeminiApiKey": {
     "message": "Get your API key from Google AI Studio"
   },
+  "hintGeminiBaseUrl": {
+    "message": "For Gemini, host-only URL is recommended; /v1beta is also supported"
+  },
   "hintOpenaiApi": {
     "message": "Enter your OpenAI API key and base URL"
+  },
+  "hintOpenaiModel": {
+    "message": "Enter a vision-capable model ID for your OpenAI-compatible API"
   },
   "advancedSettings": {
     "message": "Advanced Settings"
@@ -195,7 +202,6 @@
   "hintTimeout": {
     "message": "Maximum time to wait for API response"
   },
-
   "langAuto": {
     "message": "Auto Detect"
   },
@@ -211,7 +217,6 @@
   "langKo": {
     "message": "Korean"
   },
-
   "saving": {
     "message": "Saving..."
   },
@@ -236,7 +241,6 @@
   "copy": {
     "message": "Copy"
   },
-
   "prompt": {
     "message": "Prompt"
   },
@@ -249,7 +253,6 @@
   "confirmClearHistory": {
     "message": "Are you sure you want to clear all history?"
   },
-
   "usageTips": {
     "message": "Usage Tips"
   },
@@ -261,5 +264,11 @@
   },
   "tip3": {
     "message": "View your analysis history in the extension popup"
+  },
+  "errorGeminiModelRequired": {
+    "message": "Gemini model ID is required"
+  },
+  "warnGeminiVisionModel": {
+    "message": "Please ensure the selected Gemini model supports vision input"
   }
 }

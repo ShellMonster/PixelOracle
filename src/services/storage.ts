@@ -7,8 +7,11 @@
 export interface Settings {
   apiProvider: 'gemini' | 'openai'
   geminiApiKey: string
+  geminiBaseUrl: string
+  geminiModel: string
   openaiApiKey: string
   openaiBaseUrl: string
+  openaiModel: string
   language: 'auto' | 'zh' | 'en' | 'ja' | 'ko'
   timeout: number // 秒
   enabled: boolean
@@ -19,6 +22,7 @@ export interface HistoryItem {
   md5: string // 压缩后图片的MD5哈希
   prompt: string // 逆向生成的提示词
   thumbnailUrl: string // 缩略图（base64或URL）
+  sourceUrl?: string // 原图网络地址
   createdAt: number // 时间戳
   isFromHistory?: boolean // 标记是否来自历史记录
 }
@@ -27,8 +31,11 @@ export interface HistoryItem {
 export const DEFAULT_SETTINGS: Settings = {
   apiProvider: 'gemini',
   geminiApiKey: '',
+  geminiBaseUrl: 'https://generativelanguage.googleapis.com',
+  geminiModel: 'gemini-3-flash-preview',
   openaiApiKey: '',
   openaiBaseUrl: 'https://api.openai.com/v1',
+  openaiModel: 'gemini-3-flash-preview',
   language: 'auto',
   timeout: 180, // 3分钟
   enabled: true,
@@ -170,36 +177,4 @@ export async function deleteHistoryItem(md5: string): Promise<void> {
       }
     })
   })
-}
-
-/**
- * 监听存储变化
- */
-export function onStorageChanged(
-  callback: (changes: { settings?: Settings; history?: HistoryItem[] }) => void
-): () => void {
-  const listener = (
-    changes: { [key: string]: chrome.storage.StorageChange },
-    _areaName: string
-  ) => {
-    const result: { settings?: Settings; history?: HistoryItem[] } = {}
-    
-    if (changes[STORAGE_KEYS.SETTINGS]) {
-      result.settings = changes[STORAGE_KEYS.SETTINGS].newValue as Settings
-    }
-    if (changes[STORAGE_KEYS.HISTORY]) {
-      result.history = changes[STORAGE_KEYS.HISTORY].newValue as HistoryItem[]
-    }
-    
-    if (result.settings || result.history) {
-      callback(result)
-    }
-  }
-  
-  chrome.storage.onChanged.addListener(listener)
-  
-  // 返回取消监听函数
-  return () => {
-    chrome.storage.onChanged.removeListener(listener)
-  }
 }

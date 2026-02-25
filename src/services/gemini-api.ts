@@ -47,36 +47,117 @@ interface GeminiResponse {
   }
 }
 
-const IMAGE_TO_PROMPT_SYSTEM = `你是一个AI绘图提示词专家。请分析用户提供的图片，直接输出一个详细的、可以用来生成相似图片的AI绘图提示词。
+const IMAGE_TO_PROMPT_SYSTEM = `你是一名“结构化视觉风格抽象工程师”。
 
-提示词必须包含以下要素（融合成连贯的描述，不要分点列举）：
-- 主体内容：主要对象、人物、场景的详细描述
-- 构图方式：视角、景别、画面布局
-- 色彩风格：主色调、配色方案
-- 光影效果：光源、氛围
-- 艺术风格：写实、插画、动漫等
-- 细节特征：纹理、材质、装饰
-- 质量标签：如 high quality, 8k, detailed 等
+当用户上传图片后，你必须：
+1. 判断图像主体类型（人物 / 风景 / 静物产品 / 建筑空间 / 概念合成）。
+2. 根据类型选择对应规则模块。
+3. 输出一个结构化、可复制使用的生成 Prompt。
+4. 不输出分析过程。
+5. 不输出解释说明。
+6. 不输出评价。
+7. 只输出最终结构化 Prompt 文本。
 
-输出规则：
-- 只返回最终 prompt 本体，不要 JSON，不要 markdown，不要解释、标题、分点、代码块
-- 严禁输出“图片分析”“提示词推荐”“通用版”“Prompt:”等任何额外文本
-- 可为单段或多行，但必须全部是 prompt 本体内容
-- 输出语言必须严格等于指定语言，不得双语混合
-- 看不清的内容写 unknown，不得臆测
-- 如果无法遵守以上规则，返回空字符串`
+输出必须严格使用以下结构：
+
+————————————————————
+
+生成一张“XXX风格定位”的图像，明确区分于XXX类型，需满足以下可核验条件：
+
+账号与风格定位：
+• 风格定位：XXX
+• 平台语境：XXX
+• 目标效果：XXX
+• 风格边界说明：XXX
+
+主体类型判定：
+• 图像类型：人物 / 风景 / 静物 / 建筑 / 合成
+• 主体核心表达逻辑：XXX
+
+主体细化规则（根据图像类型填写对应模块）：
+
+【若为人物类】
+• 人物数量：XXX
+• 行为状态：XXX
+• 姿态控制规则：XXX
+• 服饰或造型结构：XXX
+• 生活感 vs 摆拍感判断：XXX
+
+【若为风景类】
+• 时间段：XXX
+• 天气条件：XXX
+• 光源方向：XXX
+• 机位高度：XXX
+• 焦段区间：XXX
+• 层次结构：前景 / 中景 / 远景说明
+
+【若为静物或产品类】
+• 主体摆放逻辑：XXX
+• 光线类型：XXX
+• 材质表现重点：XXX
+• 背景控制规则：XXX
+• 商业感 vs 生活感判断：XXX
+
+【若为建筑或空间类】
+• 空间类型：XXX
+• 透视逻辑：XXX
+• 光线来源：XXX
+• 人类活动痕迹控制：XXX
+• 真实度控制规则：XXX
+
+【若为概念或合成类】
+• 世界观设定：XXX
+• 合成层级结构：XXX
+• 光影匹配规则：XXX
+• 真实感约束规则：XXX
+• 风格统一机制：XXX
+
+环境与光线（所有类型必须填写）：
+• 光线来源：XXX
+• 光质：硬光 / 柔光
+• 色温倾向：XXX
+• 明暗对比结构：XXX
+
+构图与技术约束：
+• 构图比例：XXX
+• 视觉重心位置：XXX
+• 景深控制：XXX
+• 清晰度与质感要求：XXX
+
+失败判定条件（如出现即不合格）：
+• 风格明显偏向XXX → 不合格
+• 主体表达不清晰 → 不合格
+• 光线无方向性 → 不合格
+• 质感失真或塑料感明显 → 不合格
+
+目标效果：
+• XXX
+• XXX
+
+————————————————————
+
+生成规则：
+• 所有描述必须具体、可验证。
+• 禁止使用抽象形容词（如高级、氛围感、好看）。
+• 必须明确风格边界。
+• 必须保留失败判定模块。
+• 必须填写全部结构。
+• 必须根据图片内容自适应填写对应模块。
+• 不得删除未使用模块标题，但可仅填写对应类型模块内容。
+
+只输出最终结构化 Prompt。`
 
 function getLanguageInstruction(language: Exclude<LanguageCode, 'auto'>): string {
   const lang = resolvePromptLanguage(language)
-  if (lang === 'en') return '请使用英文返回prompt（English only）'
+  if (lang === 'en') return 'Please output in English only.'
   if (lang === 'ja') return '日本語でpromptを返してください（日本語のみ）'
-  if (lang === 'ko') return '프롬프트를 한국어로 반환하세요（한국어만）'
+  if (lang === 'ko') return '프롬프트를 한국어로만 출력하세요.'
   return '请使用简体中文返回prompt（仅中文）'
 }
 
 function buildPromptText(language: LanguageCode): string {
   const resolved = resolvePromptLanguage(language)
-  return `${IMAGE_TO_PROMPT_SYSTEM}\n\n${getLanguageInstruction(resolved)}\n最终检查：仅输出prompt本体，不输出解释。`
+  return `${IMAGE_TO_PROMPT_SYSTEM}\n\n${getLanguageInstruction(resolved)}\n最终检查：严格按给定结构输出完整文本，不输出任何解释。`
 }
 
 export async function reversePrompt(
@@ -133,7 +214,7 @@ export async function reversePrompt(
     contents: [
       {
         parts: [
-          { text: `请分析这张图片并生成提示词。仅返回prompt本体，禁止任何解释。${getLanguageInstruction(resolvePromptLanguage(language))}` },
+          { text: `请分析这张图片并生成提示词。严格复用给定结构，仅替换具体内容，禁止解释。${getLanguageInstruction(resolvePromptLanguage(language))}` },
           {
             inline_data: {
               mime_type: mimeType,

@@ -14,6 +14,7 @@ import { logger } from '../utils/logger'
 interface AnalyzeImageMessage {
   type: 'ANALYZE_IMAGE'
   imageData: string // data URL 格式，如 data:image/jpeg;base64,...
+  sourceUrl?: string
 }
 
 // 响应消息
@@ -69,7 +70,7 @@ async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
  * @param imageData - data URL 格式的图片数据
  * @returns 分析结果
  */
-async function handleAnalyzeImage(imageData: string): Promise<AnalyzeResponse> {
+async function handleAnalyzeImage(imageData: string, sourceUrl?: string): Promise<AnalyzeResponse> {
   try {
     // 1. 解析 data URL，提取 MIME 类型和 base64 数据
     const { mimeType, base64 } = parseDataURL(imageData)
@@ -82,6 +83,12 @@ async function handleAnalyzeImage(imageData: string): Promise<AnalyzeResponse> {
     const existingHistory = await findHistoryByMD5(md5)
     
     if (existingHistory) {
+      if (!existingHistory.sourceUrl && sourceUrl) {
+        await saveHistory({
+          ...existingHistory,
+          sourceUrl,
+        })
+      }
       // 命中历史记录，直接返回结果
       logger.log('Found in history:', md5)
       return {
@@ -120,7 +127,9 @@ async function handleAnalyzeImage(imageData: string): Promise<AnalyzeResponse> {
         mimeType,
         settings.language,
         settings.geminiApiKey,
-        timeoutMs
+        timeoutMs,
+        settings.geminiBaseUrl || 'https://generativelanguage.googleapis.com',
+        settings.geminiModel || 'gemini-3-flash-preview'
       )
       
       prompt = await withTimeout(apiPromise, timeoutMs)
@@ -132,7 +141,7 @@ async function handleAnalyzeImage(imageData: string): Promise<AnalyzeResponse> {
         settings.language,
         settings.openaiApiKey,
         settings.openaiBaseUrl || 'https://api.openai.com/v1',
-        'gpt-4o', // 默认使用 gpt-4o 模型
+        settings.openaiModel || 'gemini-3-flash-preview',
         settings.timeout || 180 // timeout 参数是秒
       )
       
@@ -157,6 +166,7 @@ async function handleAnalyzeImage(imageData: string): Promise<AnalyzeResponse> {
       md5,
       prompt,
       thumbnailUrl,
+      sourceUrl,
       createdAt: Date.now(),
     }
     
@@ -220,7 +230,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     const typedMessage = message as AnalyzeImageMessage
     
     // 异步处理图片分析
-    handleAnalyzeImage(typedMessage.imageData)
+    handleAnalyzeImage(typedMessage.imageData, typedMessage.sourceUrl)
       .then((response) => {
         sendResponse(response)
       })

@@ -28,8 +28,12 @@ let overlayProbeCursor = 0
 // 全局弹窗实例（复用同一个弹窗）
 let globalPopup: PromptPopup | null = null
 
-// 是否正在分析中（防止重复点击）
-let isAnalyzing = false
+// 最近一次触发弹窗展示的请求序号（用于并发请求下避免弹窗串结果）
+let latestPopupRequestSeq = 0
+let detectorInstance: ImageDetector | null = null
+let lifecycleBound = false
+let initialized = false
+let lastKnownUrl = window.location.href
 
 function getDynamicSyncBudget(): { nearby: number; probe: number } {
   const activeCount = overlayMap.size
@@ -64,12 +68,11 @@ function scheduleOverlayPositionSync(): void {
   positionSyncRafId = window.requestAnimationFrame(() => {
     positionSyncRafId = null
     rebalanceOverlayPool()
-    const entries = Array.from(overlayMap.entries())
-    if (entries.length === 0) return
+    if (overlayMap.size === 0) return
     const budget = getDynamicSyncBudget()
 
     // 1) 非 idle 覆盖层优先同步（交互中）
-    for (const [, overlay] of entries) {
+    for (const [, overlay] of overlayMap) {
       if (overlay.getState() !== 'idle') {
         overlay.syncPosition()
       }
@@ -77,7 +80,7 @@ function scheduleOverlayPositionSync(): void {
 
     // 2) 近视口 idle 覆盖层按预算同步
     let nearbyBudget = budget.nearby
-    for (const [img, overlay] of entries) {
+    for (const [img, overlay] of overlayMap) {
       if (nearbyBudget <= 0) break
       if (overlay.getState() !== 'idle') continue
       if (!overlay.isInViewport() && !isNearViewport(img)) continue
@@ -86,15 +89,17 @@ function scheduleOverlayPositionSync(): void {
     }
 
     // 3) 远端 idle 覆盖层按小预算轮询探测，避免滚动到新区域时延迟过大
-    const idleFarEntries = entries.filter(([img, overlay]) => {
-      if (overlay.getState() !== 'idle') return false
-      return !overlay.isInViewport() && !isNearViewport(img)
-    })
+    const idleFarEntries: ButtonOverlay[] = []
+    for (const [img, overlay] of overlayMap) {
+      if (overlay.getState() !== 'idle') continue
+      if (overlay.isInViewport() || isNearViewport(img)) continue
+      idleFarEntries.push(overlay)
+    }
     if (idleFarEntries.length > 0) {
       let probeBudget = Math.min(budget.probe, idleFarEntries.length)
       let index = overlayProbeCursor % idleFarEntries.length
       while (probeBudget > 0) {
-        const [, overlay] = idleFarEntries[index]
+        const overlay = idleFarEntries[index]
         overlay.syncPosition()
         probeBudget -= 1
         index = (index + 1) % idleFarEntries.length
@@ -155,6 +160,7 @@ function scheduleOverlayCleanup(): void {
 function startOverlayLifecycleObserver(): void {
   if (overlayLifecycleObserver) return
   overlayLifecycleObserver = new MutationObserver(() => {
+    scheduleOverlayPositionSync()
     scheduleOverlayCleanup()
   })
   overlayLifecycleObserver.observe(document.body, {
@@ -184,6 +190,79 @@ function ensureImageVisibilityObserver(): void {
       threshold: 0.01,
     }
   )
+}
+
+function rescanPageImages(reason: string): void {
+  if (!detectorInstance) return
+  if (document.visibilityState === 'hidden') return
+
+  logger.log(`[Content Script] 触发重扫: ${reason}`)
+  detectorInstance.scanExistingImages()
+  scheduleOverlayCleanup()
+  promotePendingImages(24)
+  scheduleOverlayPositionSync()
+}
+
+function bindPageLifecycleEvents(): void {
+  if (lifecycleBound) return
+  lifecycleBound = true
+
+  window.addEventListener('pageshow', () => {
+    rescanPageImages('pageshow')
+  })
+
+  window.addEventListener('focus', () => {
+    rescanPageImages('focus')
+  })
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      rescanPageImages('visibilitychange:visible')
+    }
+  })
+
+  window.addEventListener('popstate', () => {
+    const currentUrl = window.location.href
+    if (currentUrl !== lastKnownUrl) {
+      lastKnownUrl = currentUrl
+      rescanPageImages('popstate')
+    }
+  })
+
+  window.addEventListener('hashchange', () => {
+    const currentUrl = window.location.href
+    if (currentUrl !== lastKnownUrl) {
+      lastKnownUrl = currentUrl
+      rescanPageImages('hashchange')
+    }
+  })
+
+  const historyProto = window.history as History & {
+    __imagePromptPatched?: boolean
+  }
+  if (!historyProto.__imagePromptPatched) {
+    historyProto.__imagePromptPatched = true
+    const rawPushState = window.history.pushState.bind(window.history)
+    const rawReplaceState = window.history.replaceState.bind(window.history)
+
+    window.history.pushState = ((...args: Parameters<History['pushState']>) => {
+      rawPushState(...args)
+      const currentUrl = window.location.href
+      if (currentUrl !== lastKnownUrl) {
+        lastKnownUrl = currentUrl
+        rescanPageImages('pushState')
+      }
+    }) as History['pushState']
+
+    window.history.replaceState = ((...args: Parameters<History['replaceState']>) => {
+      rawReplaceState(...args)
+      const currentUrl = window.location.href
+      if (currentUrl !== lastKnownUrl) {
+        lastKnownUrl = currentUrl
+        rescanPageImages('replaceState')
+      }
+    }) as History['replaceState']
+  }
 }
 
 function isNearViewport(img: HTMLImageElement): boolean {
@@ -293,12 +372,7 @@ async function handleButtonClick(
   img: HTMLImageElement,
   overlay: ButtonOverlay
 ): Promise<void> {
-  // 防止重复点击
-  if (isAnalyzing) {
-    return
-  }
-  
-  isAnalyzing = true
+  const requestSeq = ++latestPopupRequestSeq
   overlay.setState('loading')
   
   const popup = getGlobalPopup()
@@ -306,7 +380,7 @@ async function handleButtonClick(
   // 显示弹窗（先显示加载状态）
   const buttonElement = overlay.getButtonElement?.() || document.body
   popup.show(buttonElement, '')
-  popup.showLoading()
+  popup.showLoadingWithStartTime(Date.now())
   
   try {
     // 获取图片的 Data URL
@@ -316,24 +390,45 @@ async function handleButtonClick(
     const response = await chrome.runtime.sendMessage({
       type: 'ANALYZE_IMAGE',
       imageData: imageDataUrl,
+      sourceUrl: getImageSourceUrl(img),
     })
     
     if (response.success && response.prompt) {
       // 分析成功
-      popup.setPrompt(response.prompt)
+      if (requestSeq === latestPopupRequestSeq) {
+        popup.setPrompt(response.prompt)
+      }
       overlay.setState('success')
     } else {
       // 分析失败
       const errorMessage = response.error || '分析失败，请重试'
-      popup.showError(errorMessage)
+      if (requestSeq === latestPopupRequestSeq) {
+        popup.showError(errorMessage)
+      }
       overlay.setState('idle')
     }
   } catch (error) {
     console.error('[Content Script] 分析图片失败:', error)
-    popup.showError(error instanceof Error ? error.message : '分析失败')
+    if (requestSeq === latestPopupRequestSeq) {
+      popup.showError(error instanceof Error ? error.message : '分析失败')
+    }
     overlay.setState('idle')
-  } finally {
-    isAnalyzing = false
+  }
+}
+
+function getImageSourceUrl(img: HTMLImageElement): string | undefined {
+  const src = (img.currentSrc || img.src || '').trim()
+  if (!src) return undefined
+  if (src.startsWith('data:')) return undefined
+
+  try {
+    const url = new URL(src, window.location.href)
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+      return undefined
+    }
+    return url.href
+  } catch {
+    return undefined
   }
 }
 
@@ -375,7 +470,7 @@ async function getImageDataUrl(img: HTMLImageElement): Promise<string> {
       throw new Error('无法创建 canvas 上下文')
     }
     ctx.drawImage(source, 0, 0, width, height)
-    return canvas.toDataURL('image/jpeg', 0.9)
+    return canvas.toDataURL('image/jpeg', 0.85)
   }
   
   // 尝试通过 canvas 获取图片数据
@@ -446,10 +541,16 @@ function handleImageDetected(img: HTMLImageElement): void {
  * 初始化 Content Script
  */
 function init(): void {
+  if (initialized) {
+    rescanPageImages('init:already-initialized')
+    return
+  }
+  initialized = true
+
   logger.log('[Content Script] 初始化图片提示词分析器')
   
   // 创建图片检测器
-  const detector = new ImageDetector({
+  detectorInstance = new ImageDetector({
     minWidth: CONFIG.IMAGE_MIN_SIZE,
     minHeight: CONFIG.IMAGE_MIN_SIZE,
     minArea: CONFIG.IMAGE_MIN_AREA,
@@ -457,15 +558,16 @@ function init(): void {
   })
   
   // 注册图片检测回调
-  detector.onImageDetected(handleImageDetected)
+  detectorInstance.onImageDetected(handleImageDetected)
   
   // 启动检测器
-  detector.start()
+  detectorInstance.start()
 
   // 启动全局位置同步与生命周期清理（单例）
   startGlobalPositionSync()
   startOverlayLifecycleObserver()
   ensureImageVisibilityObserver()
+  bindPageLifecycleEvents()
   
   // 监听来自 popup 或 background 的消息
   chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {

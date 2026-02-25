@@ -180,13 +180,27 @@ export class ImageDetector {
       return;
     }
 
-    // 检查图片尺寸是否满足最小要求
-    const meetsRequirements = 
+    // 过滤头像、个人资料图等非目标图片
+    if (this.shouldSkipByContext(img)) {
+      return;
+    }
+
+    // 检查原始尺寸是否满足最小要求
+    const meetsNaturalRequirements =
       img.naturalWidth >= this.options.minWidth &&
       img.naturalHeight >= this.options.minHeight &&
       img.naturalWidth * img.naturalHeight >= this.options.minArea;
 
-    if (meetsRequirements) {
+    // 检查页面实际显示尺寸，避免对头像/小图标加按钮
+    const rect = img.getBoundingClientRect();
+    const renderWidth = Math.max(rect.width, img.clientWidth);
+    const renderHeight = Math.max(rect.height, img.clientHeight);
+    const meetsRenderedRequirements =
+      renderWidth >= CONFIG.IMAGE_MIN_RENDER_SIZE &&
+      renderHeight >= CONFIG.IMAGE_MIN_RENDER_SIZE &&
+      renderWidth * renderHeight >= CONFIG.IMAGE_MIN_RENDER_AREA;
+
+    if (meetsNaturalRequirements && meetsRenderedRequirements) {
       // 将图片标记为已处理
       this.processedImages.add(img);
       
@@ -225,6 +239,39 @@ export class ImageDetector {
     }
   }
 
+  private shouldSkipByContext(img: HTMLImageElement): boolean {
+    const tagText = [
+      img.className || '',
+      img.id || '',
+      img.getAttribute('alt') || '',
+      img.getAttribute('data-testid') || '',
+      img.getAttribute('itemprop') || '',
+    ]
+      .join(' ')
+      .toLowerCase();
+
+    if (
+      tagText.includes('avatar') ||
+      tagText.includes('profile picture') ||
+      tagText.includes('profile image')
+    ) {
+      return true;
+    }
+
+    let parent: Element | null = img.parentElement;
+    let depth = 0;
+    while (parent && depth < 4) {
+      const parentText = `${parent.className || ''} ${parent.id || ''}`.toLowerCase();
+      if (parentText.includes('avatar')) {
+        return true;
+      }
+      parent = parent.parentElement;
+      depth += 1;
+    }
+
+    return false;
+  }
+
   /**
    * 启动 MutationObserver 监听 DOM 变化
    * 当有新元素添加到页面时，检查其中是否包含符合条件的图片
@@ -239,10 +286,15 @@ export class ImageDetector {
       // 设置新的定时器，延迟执行处理逻辑
       this.debounceTimer = window.setTimeout(() => {
         this.debounceTimer = null;
-        
+        let scannedCount = 0
+
         mutations.forEach((mutation) => {
           // 遍历所有新增的节点
           mutation.addedNodes.forEach((node) => {
+            if (scannedCount >= CONFIG.MAX_IMAGES_SCAN_PER_BATCH) {
+              return
+            }
+
             // 只处理元素节点（跳过文本节点、注释节点等）
             if (node.nodeType !== Node.ELEMENT_NODE) {
               return;
@@ -253,15 +305,20 @@ export class ImageDetector {
             // 情况1：新增节点本身就是 <img> 标签
             if (element.tagName === 'IMG') {
               this.processImage(element as HTMLImageElement);
+              scannedCount += 1
               return;
             }
 
             // 情况2：新增节点包含 <img> 子元素
             // 使用 querySelectorAll 查找所有嵌套的图片
             const nestedImages = element.querySelectorAll('img');
-            nestedImages.forEach((img) => {
+            for (const img of nestedImages) {
+              if (scannedCount >= CONFIG.MAX_IMAGES_SCAN_PER_BATCH) {
+                break
+              }
               this.processImage(img);
-            });
+              scannedCount += 1
+            }
           });
         });
       }, CONFIG.DEBOUNCE_MS);

@@ -11,8 +11,11 @@ interface SettingsState extends Settings {
   resetSettings: () => Promise<void>
   setApiProvider: (provider: 'gemini' | 'openai') => void
   setGeminiApiKey: (key: string) => void
+  setGeminiBaseUrl: (url: string) => void
+  setGeminiModel: (model: string) => void
   setOpenaiApiKey: (key: string) => void
   setOpenaiBaseUrl: (url: string) => void
+  setOpenaiModel: (model: string) => void
   setLanguage: (language: 'auto' | 'zh' | 'en' | 'ja' | 'ko') => void
   setTimeout: (timeout: number) => void
   setEnabled: (enabled: boolean) => void
@@ -59,8 +62,11 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
 
   setApiProvider: (apiProvider) => get().updateSettings({ apiProvider }),
   setGeminiApiKey: (geminiApiKey) => get().updateSettings({ geminiApiKey }),
+  setGeminiBaseUrl: (geminiBaseUrl) => get().updateSettings({ geminiBaseUrl }),
+  setGeminiModel: (geminiModel) => get().updateSettings({ geminiModel }),
   setOpenaiApiKey: (openaiApiKey) => get().updateSettings({ openaiApiKey }),
   setOpenaiBaseUrl: (openaiBaseUrl) => get().updateSettings({ openaiBaseUrl }),
+  setOpenaiModel: (openaiModel) => get().updateSettings({ openaiModel }),
   setLanguage: (language) => get().updateSettings({ language }),
   setTimeout: (timeout) => get().updateSettings({ timeout }),
   setEnabled: (enabled) => get().updateSettings({ enabled }),

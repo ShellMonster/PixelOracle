@@ -194,15 +194,21 @@ function Options() {
   const {
     apiProvider,
     geminiApiKey,
+    geminiBaseUrl,
+    geminiModel,
     openaiApiKey,
     openaiBaseUrl,
+    openaiModel,
     language,
     timeout,
     loadSettings,
     setApiProvider,
     setGeminiApiKey,
+    setGeminiBaseUrl,
+    setGeminiModel,
     setOpenaiApiKey,
     setOpenaiBaseUrl,
+    setOpenaiModel,
     setLanguage,
     setTimeout: setTimeoutValue
   } = useSettingsStore()
@@ -237,6 +243,23 @@ function Options() {
     if (apiProvider === 'gemini' && !geminiApiKey.trim()) {
       newErrors.geminiApiKey = t('errorGeminiApiKeyRequired')
     }
+    if (apiProvider === 'gemini') {
+      if (!geminiBaseUrl.trim()) {
+        newErrors.geminiBaseUrl = t('errorGeminiBaseUrlRequired')
+      } else {
+        try {
+          const url = new URL(geminiBaseUrl)
+          if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+            newErrors.geminiBaseUrl = t('errorInvalidUrlProtocol')
+          }
+        } catch {
+          newErrors.geminiBaseUrl = t('errorInvalidUrl')
+        }
+      }
+      if (!geminiModel.trim()) {
+        newErrors.geminiModel = t('errorGeminiModelRequired')
+      }
+    }
 
     if (apiProvider === 'openai') {
       if (!openaiApiKey.trim()) {
@@ -253,6 +276,9 @@ function Options() {
         } catch {
           newErrors.openaiBaseUrl = t('errorInvalidUrl')
         }
+      }
+      if (!openaiModel.trim()) {
+        newErrors.openaiModel = t('errorOpenaiModelRequired')
       }
     }
 
@@ -300,7 +326,9 @@ function Options() {
           'image/png',
           'zh',
           geminiApiKey,
-          timeout * 1000
+          timeout * 1000,
+          geminiBaseUrl,
+          geminiModel
         )
       } else {
         await openaiReverse(
@@ -309,7 +337,7 @@ function Options() {
           'zh',
           openaiApiKey,
           openaiBaseUrl,
-          'gpt-4o',
+          openaiModel,
           timeout
         )
       }
@@ -372,16 +400,37 @@ function Options() {
 
             {/* Gemini API Key */}
             {apiProvider === 'gemini' && (
-              <InputField
-                label="Gemini API Key"
-                value={geminiApiKey}
-                onChange={setGeminiApiKey}
-                type="password"
-                placeholder={t('placeholderGeminiApiKey')}
-                icon={Key}
-                required
-                hint={t('hintGeminiApiKey')}
-              />
+              <div className="space-y-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                <InputField
+                  label="Gemini Base URL"
+                  value={geminiBaseUrl}
+                  onChange={setGeminiBaseUrl}
+                  placeholder="https://generativelanguage.googleapis.com"
+                  icon={Globe}
+                  required
+                  hint={t('hintGeminiBaseUrl')}
+                />
+
+                <InputField
+                  label="Gemini API Key"
+                  value={geminiApiKey}
+                  onChange={setGeminiApiKey}
+                  type="password"
+                  placeholder={t('placeholderGeminiApiKey')}
+                  icon={Key}
+                  required
+                  hint={t('hintGeminiApiKey')}
+                />
+
+                <InputField
+                  label="Gemini Model"
+                  value={geminiModel}
+                  onChange={setGeminiModel}
+                  placeholder="gemini-3-flash-preview"
+                  icon={Sparkles}
+                  required
+                />
+              </div>
             )}
             {errors.geminiApiKey && (
               <p className="text-sm text-red-500 flex items-center gap-1">
@@ -389,26 +438,28 @@ function Options() {
                 {errors.geminiApiKey}
               </p>
             )}
+            {errors.geminiBaseUrl && (
+              <p className="text-sm text-red-500 flex items-center gap-1">
+                <AlertCircle className="w-4 h-4" />
+                {errors.geminiBaseUrl}
+              </p>
+            )}
+            {errors.geminiModel && (
+              <p className="text-sm text-red-500 flex items-center gap-1">
+                <AlertCircle className="w-4 h-4" />
+                {errors.geminiModel}
+              </p>
+            )}
+            {apiProvider === 'gemini' && geminiModel.trim() && geminiModel.trim() !== 'gemini-3-flash-preview' && (
+              <p className="text-sm text-amber-600 flex items-center gap-1">
+                <AlertCircle className="w-4 h-4" />
+                {t('warnGeminiVisionModel')}
+              </p>
+            )}
 
             {/* OpenAI 配置 */}
             {apiProvider === 'openai' && (
               <div className="space-y-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                <InputField
-                  label="OpenAI API Key"
-                  value={openaiApiKey}
-                  onChange={setOpenaiApiKey}
-                  type="password"
-                  placeholder="sk-..."
-                  icon={Key}
-                  required
-                />
-                {errors.openaiApiKey && (
-                  <p className="text-sm text-red-500 flex items-center gap-1">
-                    <AlertCircle className="w-4 h-4" />
-                    {errors.openaiApiKey}
-                  </p>
-                )}
-
                 <InputField
                   label="OpenAI Base URL"
                   value={openaiBaseUrl}
@@ -418,10 +469,41 @@ function Options() {
                   required
                   hint={t('hintOpenaiApi')}
                 />
+
+                <InputField
+                  label="OpenAI API Key"
+                  value={openaiApiKey}
+                  onChange={setOpenaiApiKey}
+                  type="password"
+                  placeholder="sk-..."
+                  icon={Key}
+                  required
+                />
+                <InputField
+                  label="OpenAI Model ID"
+                  value={openaiModel}
+                  onChange={setOpenaiModel}
+                  placeholder="gemini-3-flash-preview"
+                  icon={Sparkles}
+                  required
+                  hint={t('hintOpenaiModel')}
+                />
+                {errors.openaiApiKey && (
+                  <p className="text-sm text-red-500 flex items-center gap-1">
+                    <AlertCircle className="w-4 h-4" />
+                    {errors.openaiApiKey}
+                  </p>
+                )}
                 {errors.openaiBaseUrl && (
                   <p className="text-sm text-red-500 flex items-center gap-1">
                     <AlertCircle className="w-4 h-4" />
                     {errors.openaiBaseUrl}
+                  </p>
+                )}
+                {errors.openaiModel && (
+                  <p className="text-sm text-red-500 flex items-center gap-1">
+                    <AlertCircle className="w-4 h-4" />
+                    {errors.openaiModel}
                   </p>
                 )}
               </div>

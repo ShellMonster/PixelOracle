@@ -7,7 +7,6 @@
     "message": "AI 비전 기술로 이미지를 분석하고 AI 프롬프트 추출",
     "description": "확장 프로그램 설명"
   },
-
   "timeJustNow": {
     "message": "방금"
   },
@@ -27,7 +26,6 @@
       }
     }
   },
-
   "errorLoadHistory": {
     "message": "기록 로드 실패"
   },
@@ -51,6 +49,12 @@
   },
   "errorOpenaiBaseUrlRequired": {
     "message": "OpenAI Base URL이 필요합니다"
+  },
+  "errorOpenaiModelRequired": {
+    "message": "OpenAI 모델 ID가 필요합니다"
+  },
+  "errorGeminiBaseUrlRequired": {
+    "message": "Gemini Base URL이 필요합니다"
   },
   "errorInvalidUrlProtocol": {
     "message": "잘못된 URL 프로토콜입니다. http와 https만 허용됩니다"
@@ -82,7 +86,6 @@
   "errorAnalysisFailed": {
     "message": "이미지 분석 실패"
   },
-
   "copiedToClipboard": {
     "message": "클립보드에 복사됨"
   },
@@ -98,7 +101,6 @@
   "copied": {
     "message": "복사됨"
   },
-
   "extensionDisabled": {
     "message": "확장 프로그램이 비활성화되었습니다"
   },
@@ -119,7 +121,6 @@
       }
     }
   },
-
   "appTitle": {
     "message": "PixelOracle"
   },
@@ -177,8 +178,14 @@
   "hintGeminiApiKey": {
     "message": "Google AI Studio에서 API 키를 받으세요"
   },
+  "hintGeminiBaseUrl": {
+    "message": "Gemini는 호스트 URL 입력을 권장하며 /v1beta 도 호환됩니다"
+  },
   "hintOpenaiApi": {
     "message": "OpenAI API 키와 Base URL을 입력하세요"
+  },
+  "hintOpenaiModel": {
+    "message": "OpenAI 호환 API에서 사용할 비전 지원 모델 ID를 입력하세요"
   },
   "advancedSettings": {
     "message": "고급 설정"
@@ -195,7 +202,6 @@
   "hintTimeout": {
     "message": "API 응답을 기다리는 최대 시간"
   },
-
   "langAuto": {
     "message": "자동 감지"
   },
@@ -211,7 +217,6 @@
   "langKo": {
     "message": "한국어"
   },
-
   "saving": {
     "message": "저장 중..."
   },
@@ -236,7 +241,6 @@
   "copy": {
     "message": "복사"
   },
-
   "prompt": {
     "message": "프롬프트"
   },
@@ -249,7 +253,6 @@
   "confirmClearHistory": {
     "message": "모든 기록을 지우시겠습니까?"
   },
-
   "usageTips": {
     "message": "사용 팁"
   },
@@ -261,5 +264,11 @@
   },
   "tip3": {
     "message": "확장 프로그램 팝업에서 분석 기록을 확인하세요"
+  },
+  "errorGeminiModelRequired": {
+    "message": "Gemini 모델 ID가 필요합니다"
+  },
+  "warnGeminiVisionModel": {
+    "message": "선택한 Gemini 모델이 비전 입력을 지원하는지 확인하세요"
   }
 }

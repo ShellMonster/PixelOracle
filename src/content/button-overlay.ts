@@ -45,9 +45,11 @@ export class ButtonOverlay {
   
   // 点击回调函数
   private onClickCallback: (() => void) | null = null;
-  
-  // 图片属性变化监听器（监听 src、style 等变化）
-  private mutationObserver: MutationObserver | null = null;
+
+  // 上次渲染位置缓存（避免无变化重复写样式）
+  private lastLeft = -1;
+  private lastTop = -1;
+  private lastVisible = false;
 
   /**
    * 构造函数
@@ -85,11 +87,17 @@ export class ButtonOverlay {
     // 使用 fixed 定位相对于视口，不受图片父元素影响
     document.body.appendChild(this.container);
     
+    // 固定布局属性一次性设置，避免 updatePosition 重复写入
+    this.container.style.position = 'fixed';
+    this.container.style.left = '0';
+    this.container.style.top = '0';
+    this.container.style.willChange = 'transform';
+    this.container.style.width = '28px';
+    this.container.style.height = '28px';
+    this.container.style.pointerEvents = 'auto';
+
     // 设置初始位置
     this.updatePosition();
-    
-    // 启动位置同步监听
-    this.startPositionSync();
     
     // 绑定事件
     this.bindEvents();
@@ -265,22 +273,6 @@ export class ButtonOverlay {
   }
 
   /**
-   * 启动位置同步
-   * 监听图片属性变化（src/style/size/class）
-   */
-  private startPositionSync(): void {
-    // 监听图片属性变化（src 改变可能导致尺寸变化）
-    this.mutationObserver = new MutationObserver(() => {
-      // 延迟更新，等待图片加载完成
-      setTimeout(() => this.updatePosition(), 100);
-    });
-    this.mutationObserver.observe(this.targetImage, {
-      attributes: true,
-      attributeFilter: ['src', 'style', 'width', 'height', 'class'],
-    });
-  }
-
-  /**
    * 更新按钮位置
    * 根据目标图片的位置计算按钮应该显示的位置
    */
@@ -298,12 +290,18 @@ export class ButtonOverlay {
       rect.left >= window.innerWidth
     ) {
       this.inViewport = false;
-      this.container.style.display = 'none';
+      if (this.lastVisible) {
+        this.container.style.display = 'none';
+        this.lastVisible = false;
+      }
       return;
     }
     
     this.inViewport = true;
-    this.container.style.display = 'block';
+    if (!this.lastVisible) {
+      this.container.style.display = 'block';
+      this.lastVisible = true;
+    }
     
     // 计算按钮位置：图片左下角，偏移 4px
     // 使用 fixed 定位，相对于视口
@@ -313,15 +311,11 @@ export class ButtonOverlay {
     const left = Math.min(Math.max(rect.left + offset, 4), window.innerWidth - buttonSize - 4);
     const top = Math.min(Math.max(rect.bottom - buttonSize - offset, 4), window.innerHeight - buttonSize - 4);
     
-    // 应用位置到容器
-    this.container.style.position = 'fixed';
-    this.container.style.left = '0';
-    this.container.style.top = '0';
-    this.container.style.transform = `translate3d(${left}px, ${top}px, 0)`;
-    this.container.style.willChange = 'transform';
-    this.container.style.width = `${buttonSize}px`;
-    this.container.style.height = `${buttonSize}px`;
-    this.container.style.pointerEvents = 'auto';
+    if (this.lastLeft !== left || this.lastTop !== top) {
+      this.container.style.transform = `translate3d(${left}px, ${top}px, 0)`;
+      this.lastLeft = left;
+      this.lastTop = top;
+    }
   }
 
   /**
@@ -486,12 +480,6 @@ export class ButtonOverlay {
    * 清理所有事件监听器和 DOM 元素
    */
   public destroy(): void {
-    // 断开观察者
-    if (this.mutationObserver) {
-      this.mutationObserver.disconnect();
-      this.mutationObserver = null;
-    }
-    
     // 隐藏并移除 tooltip
     this.hideTooltip();
     

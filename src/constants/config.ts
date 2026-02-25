@@ -9,32 +9,22 @@ export const CONFIG = {
   IMAGE_MIN_SIZE: 96,
   /** 最小图片面积（像素），过小图片不展示按钮 */
   IMAGE_MIN_AREA: 12000,
-
-  // ========== UI尺寸配置 ==========
-  /** 按钮尺寸（像素） */
-  BUTTON_SIZE: 28,
-  /** 按钮偏移量（像素），用于定位按钮位置 */
-  BUTTON_OFFSET: 4,
-  /** 图标尺寸（像素） */
-  ICON_SIZE: 16,
-  /** 弹窗宽度（像素） */
-  POPUP_WIDTH: 320,
-  /** 弹窗最大高度（像素） */
-  POPUP_MAX_HEIGHT: 400,
-  /** 弹窗边距（像素） */
-  POPUP_MARGIN: 8,
+  /** 图片在页面上的最小显示边长（像素），用于过滤头像/小图标 */
+  IMAGE_MIN_RENDER_SIZE: 72,
+  /** 图片在页面上的最小显示面积（像素），用于过滤头像/小图标 */
+  IMAGE_MIN_RENDER_AREA: 6400,
 
   // ========== 缩略图配置 ==========
   /** 缩略图最大尺寸（像素），用于限制预览图大小 */
   MAX_THUMBNAIL_SIZE: 256,
   /** 分析请求图片最大边长（像素），用于控制内存与带宽 */
-  MAX_ANALYZE_IMAGE_EDGE: 2048,
+  MAX_ANALYZE_IMAGE_EDGE: 1536,
   /** 页面中最多激活的按钮覆盖层数量 */
-  MAX_ACTIVE_OVERLAYS: 80,
+  MAX_ACTIVE_OVERLAYS: 48,
   /** 近视口区域建议维持的激活覆盖层数量（超过会回收远端 idle 覆盖层） */
   MAX_NEARBY_OVERLAYS: 24,
   /** 待观察（懒创建）的图片最大数量 */
-  MAX_PENDING_IMAGES: 300,
+  MAX_PENDING_IMAGES: 120,
   /** 每帧最多同步的近视口 idle 覆盖层数量 */
   MAX_SYNC_UPDATES_PER_FRAME: 16,
   /** 每帧用于轮询远端 idle 覆盖层的探测数量 */
@@ -52,15 +42,11 @@ export const CONFIG = {
   /** 低档每帧探测预算 */
   LOW_PROBE_UPDATES_PER_FRAME: 2,
 
-  // ========== 超时配置（毫秒） ==========
-  /** 默认请求超时时间（3分钟） */
-  DEFAULT_TIMEOUT_MS: 180000,
-  /** 消息通信超时时间（2分10秒） */
-  MESSAGE_TIMEOUT_MS: 130000,
-  /** Tab消息超时时间（30秒） */
-  TAB_MESSAGE_TIMEOUT_MS: 30000,
+  // ========== 任务调度配置（毫秒） ==========
   /** 防抖延迟时间（毫秒），用于优化频繁操作 */
-  DEBOUNCE_MS: 100,
+  DEBOUNCE_MS: 150,
+  /** 单次 DOM 变更批处理中最多扫描的图片数量 */
+  MAX_IMAGES_SCAN_PER_BATCH: 80,
 
   // ========== 存储限制配置 ==========
   /** 历史记录最大保存条数 */

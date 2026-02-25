@@ -7,7 +7,6 @@
     "message": "AIビジョン技術で画像を分析し、AIプロンプトを抽出",
     "description": "拡張機能の説明"
   },
-
   "timeJustNow": {
     "message": "たった今"
   },
@@ -27,7 +26,6 @@
       }
     }
   },
-
   "errorLoadHistory": {
     "message": "履歴の読み込みに失敗しました"
   },
@@ -51,6 +49,12 @@
   },
   "errorOpenaiBaseUrlRequired": {
     "message": "OpenAI Base URLが必要です"
+  },
+  "errorOpenaiModelRequired": {
+    "message": "OpenAIモデルIDが必要です"
+  },
+  "errorGeminiBaseUrlRequired": {
+    "message": "Gemini Base URLが必要です"
   },
   "errorInvalidUrlProtocol": {
     "message": "無効なURLプロトコルです。httpとhttpsのみ許可されています"
@@ -82,7 +86,6 @@
   "errorAnalysisFailed": {
     "message": "画像解析に失敗しました"
   },
-
   "copiedToClipboard": {
     "message": "クリップボードにコピーしました"
   },
@@ -98,7 +101,6 @@
   "copied": {
     "message": "コピーしました"
   },
-
   "extensionDisabled": {
     "message": "拡張機能が無効です"
   },
@@ -119,7 +121,6 @@
       }
     }
   },
-
   "appTitle": {
     "message": "PixelOracle"
   },
@@ -177,8 +178,14 @@
   "hintGeminiApiKey": {
     "message": "Google AI StudioからAPIキーを取得してください"
   },
+  "hintGeminiBaseUrl": {
+    "message": "GeminiはホストのみのURLを推奨します。/v1beta 付きでも利用可能です"
+  },
   "hintOpenaiApi": {
     "message": "OpenAI APIキーとBase URLを入力してください"
+  },
+  "hintOpenaiModel": {
+    "message": "OpenAI互換APIで使う、画像対応モデルIDを入力してください"
   },
   "advancedSettings": {
     "message": "詳細設定"
@@ -195,7 +202,6 @@
   "hintTimeout": {
     "message": "APIレスポンスを待機する最大時間"
   },
-
   "langAuto": {
     "message": "自動検出"
   },
@@ -211,7 +217,6 @@
   "langKo": {
     "message": "韓国語"
   },
-
   "saving": {
     "message": "保存中..."
   },
@@ -236,7 +241,6 @@
   "copy": {
     "message": "コピー"
   },
-
   "prompt": {
     "message": "プロンプト"
   },
@@ -249,7 +253,6 @@
   "confirmClearHistory": {
     "message": "すべての履歴をクリアしてもよろしいですか？"
   },
-
   "usageTips": {
     "message": "使用のヒント"
   },
@@ -261,5 +264,11 @@
   },
   "tip3": {
     "message": "拡張機能のポップアップで解析履歴を確認"
+  },
+  "errorGeminiModelRequired": {
+    "message": "GeminiモデルIDが必要です"
+  },
+  "warnGeminiVisionModel": {
+    "message": "選択したGeminiモデルが画像入力に対応していることを確認してください"
   }
 }
