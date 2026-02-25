@@ -1,11 +1,12 @@
 import { t } from '../utils/i18n'
+import { extractPromptFromJsonOrText } from '../utils/prompt-cleaner'
+import { resolvePromptLanguage, type PromptLanguage } from '../utils/language'
 
 /**
  * OpenAI Vision API 服务
  * 用于调用 OpenAI 的图像分析接口，逆向生成图像提示词
  */
 
-// OpenAI API 响应接口
 interface OpenAIResponse {
   choices: Array<{
     message: {
@@ -18,76 +19,68 @@ interface OpenAIResponse {
   }
 }
 
-// 语言代码映射到提示词语言
-const LANGUAGE_PROMPTS: Record<string, string> = {
-  zh: '请用中文回复',
-  en: 'Please reply in English',
-  ja: '日本語で返信してください',
-  ko: '한국어로 답변해 주세요',
-  auto: '请用中文回复', // 默认中文
+const IMAGE_TO_PROMPT_SYSTEM = `你是一个AI绘图提示词专家。请分析用户提供的图片，直接输出一个详细的、可以用来生成相似图片的AI绘图提示词。
+
+提示词必须包含以下要素（融合成连贯的描述，不要分点列举）：
+- 主体内容：主要对象、人物、场景的详细描述
+- 构图方式：视角、景别、画面布局
+- 色彩风格：主色调、配色方案
+- 光影效果：光源、氛围
+- 艺术风格：写实、插画、动漫等
+- 细节特征：纹理、材质、装饰
+- 质量标签：如 high quality, 8k, detailed 等
+
+输出规则：
+- 只返回最终 prompt 本体，不要 JSON，不要 markdown，不要解释、标题、分点、代码块
+- 严禁输出“图片分析”“提示词推荐”“通用版”“Prompt:”等任何额外文本
+- 可为单段或多行，但必须全部是 prompt 本体内容
+- 输出语言必须严格等于指定语言，不得双语混合
+- 看不清的内容写 unknown，不得臆测
+- 如果无法遵守以上规则，返回空字符串`
+
+function buildAnalysisPrompt(language: PromptLanguage): string {
+  const lang = resolvePromptLanguage(language)
+  let languageInstruction = '请使用简体中文返回prompt（仅中文）'
+  if (lang === 'en') languageInstruction = '请使用英文返回prompt（English only）'
+  if (lang === 'ja') languageInstruction = '日本語でpromptを返してください（日本語のみ）'
+  if (lang === 'ko') languageInstruction = '프롬프트를 한국어로 반환하세요（한국어만）'
+
+  return `${IMAGE_TO_PROMPT_SYSTEM}\n\n${languageInstruction}\n最终检查：仅输出prompt本体，不输出解释。`
 }
 
-/**
- * 根据语言代码生成分析提示词
- * @param language - 语言代码 (zh/en/ja/ko/auto)
- * @returns 完整的分析提示词
- */
-function buildAnalysisPrompt(language: string): string {
-  const langInstruction = LANGUAGE_PROMPTS[language] || LANGUAGE_PROMPTS['zh']
-  
-  return `Analyze this image and generate a detailed prompt that could be used to recreate it with an AI image generator.
-
-Please provide:
-1. Main subject description (人物/物体/场景描述)
-2. Art style and medium (艺术风格和媒介)
-3. Color palette and lighting (色调和光影)
-4. Composition and perspective (构图和视角)
-5. Mood and atmosphere (情绪和氛围)
-6. Technical details (camera settings, quality tags if applicable)
-
-Format the output as a single, comprehensive prompt paragraph that captures all essential elements.
-
-${langInstruction}`
+function getLanguageInstruction(language: PromptLanguage): string {
+  const lang = resolvePromptLanguage(language)
+  if (lang === 'en') return '请使用英文返回prompt（English only）'
+  if (lang === 'ja') return '日本語でpromptを返してください（日本語のみ）'
+  if (lang === 'ko') return '프롬프트를 한국어로 반환하세요（한국어만）'
+  return '请使用简体中文返回prompt（仅中文）'
 }
 
-/**
- * 调用 OpenAI Vision API 逆向生成图片提示词
- * 
- * @param imageBase64 - 图片的 Base64 编码字符串（不含 data:url 前缀）
- * @param mimeType - 图片 MIME 类型（如 image/jpeg, image/png）
- * @param language - 返回语言 (zh/en/ja/ko/auto)
- * @param apiKey - OpenAI API Key
- * @param baseUrl - API 基础 URL（支持 OpenAI 兼容 API）
- * @param model - 使用的模型，默认 gpt-4o
- * @param timeout - 请求超时时间（秒），默认 180 秒
- * @returns 生成的提示词文本
- * @throws 当 API 调用失败时抛出用户友好的错误信息
- */
 export async function reversePrompt(
   imageBase64: string,
   mimeType: string,
-  language: string,
+  language: PromptLanguage,
   apiKey: string,
   baseUrl: string,
-  model: string = 'gpt-4o',
+  model: string = 'gemini-3-flash-preview',
   timeout: number = 180
 ): Promise<string> {
-  // 构建完整的 API URL
   const apiUrl = `${baseUrl.replace(/\/$/, '')}/chat/completions`
-  
-  // 构建图片 Data URL
   const imageUrl = `data:${mimeType};base64,${imageBase64}`
-  
-  // 构建请求体
+
   const requestBody = {
-    model: model,
+    model,
     messages: [
+      {
+        role: 'system',
+        content: buildAnalysisPrompt(language),
+      },
       {
         role: 'user',
         content: [
           {
             type: 'text',
-            text: buildAnalysisPrompt(language),
+            text: `请分析这张图片并生成提示词。仅返回prompt本体，禁止任何解释。${getLanguageInstruction(language)}`,
           },
           {
             type: 'image_url',
@@ -100,122 +93,67 @@ export async function reversePrompt(
     ],
     max_tokens: 1000,
   }
-  
-  // 创建 AbortController 用于超时控制
+
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), timeout * 1000)
-  
+
   try {
-    // 发送 API 请求
     const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
+        Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify(requestBody),
       signal: controller.signal,
     })
-    
-    // 清除超时定时器
+
     clearTimeout(timeoutId)
-    
-    // 解析响应
+
     const data: OpenAIResponse = await response.json()
-    
-    // 检查 API 返回的错误
+
     if (data.error) {
       throw new Error(`API 错误: ${data.error.message}`)
     }
-    
-    // 检查响应格式
+
     if (!data.choices || data.choices.length === 0) {
       throw new Error(t('errorApiNoResult'))
     }
-    
-    // 提取生成的提示词
+
     const content = data.choices[0].message.content
-    
+
     if (!content || content.trim() === '') {
       throw new Error(t('errorApiEmptyContent'))
     }
-    
-    return content.trim()
-    
+
+    const prompt = extractPromptFromJsonOrText(content, resolvePromptLanguage(language))
+    if (!prompt) {
+      throw new Error(t('errorApiInvalidResponse'))
+    }
+    return prompt
   } catch (error) {
-    // 清除超时定时器（确保在错误情况下也能清除）
     clearTimeout(timeoutId)
-    
-    // 处理不同类型的错误
+
     if (error instanceof Error) {
-      // 超时错误
       if (error.name === 'AbortError') {
         throw new Error(`请求超时：服务器在 ${timeout} 秒内未响应，请检查网络连接或稍后重试`)
       }
-      
-      // 网络错误
+
       if (error.message.includes('fetch') || error.message.includes('network')) {
-        throw new Error(`网络错误：无法连接到服务器，请检查网络连接和 API 地址是否正确`)
+        throw new Error('网络错误：无法连接到服务器，请检查网络连接和 API 地址是否正确')
       }
-      
-      // 已经是用户友好的错误信息，直接抛出
-      if (error.message.startsWith('API') || error.message.startsWith('请求') || error.message.startsWith('网络')) {
+
+      if (
+        error.message.startsWith('API') ||
+        error.message.startsWith('请求') ||
+        error.message.startsWith('网络')
+      ) {
         throw error
       }
-      
-      // 其他未知错误
+
       throw new Error(`分析失败：${error.message}`)
     }
-    
-    // 非 Error 类型的错误
+
     throw new Error(t('errorAnalysisFailed'))
-  }
-}
-
-/**
- * 验证 API Key 格式
- * @param apiKey - API Key 字符串
- * @param strict - 是否使用严格验证（默认 false）
- * @returns 验证结果对象
- */
-export function validateApiKey(
-  apiKey: string | undefined | null,
-  strict: boolean = false
-): { valid: boolean; error?: string } {
-  if (!apiKey || apiKey.trim().length === 0) {
-    return { valid: false, error: 'API 密钥不能为空' }
-  }
-  
-  if (strict) {
-    // OpenAI Key: sk-... 长度约51字符
-    const trimmedKey = apiKey.trim()
-    if (!trimmedKey.startsWith('sk-')) {
-      return { 
-        valid: false, 
-        error: 'API 密钥格式不正确，OpenAI API Key 通常以 "sk-" 开头' 
-      }
-    }
-    if (trimmedKey.length < 48) {
-      return { 
-        valid: false, 
-        error: 'API 密钥长度不足，请检查是否完整复制' 
-      }
-    }
-  }
-  
-  return { valid: true }
-}
-
-/**
- * 验证 Base URL 格式
- * @param baseUrl - Base URL 字符串
- * @returns 是否有效
- */
-export function validateBaseUrl(baseUrl: string): boolean {
-  try {
-    const url = new URL(baseUrl)
-    return url.protocol === 'http:' || url.protocol === 'https:'
-  } catch {
-    return false
   }
 }
