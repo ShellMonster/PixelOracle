@@ -1,4 +1,4 @@
-name: Build Chrome Extension
+name: 构建 Chrome 扩展
 
 on:
   push:
@@ -9,39 +9,102 @@ on:
     branches: [main]
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
     
     steps:
-      - name: Checkout repository
+      - name: 拉取源代码
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: Setup Node.js
+      - name: 获取当前时间 (北京时间)
+        run: |
+          BUILD_TIME=$(TZ=Asia/Shanghai date "+%Y-%m-%d %H:%M:%S")
+          echo "BUILD_TIME=$BUILD_TIME" >> $GITHUB_ENV
+
+      - name: 安装 Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
 
-      - name: Install dependencies
+      - name: 安装依赖
         run: npm ci
 
-      - name: Build extension
+      - name: 构建扩展
         run: npm run build
 
-      - name: Create extension package
+      - name: 生成 Release Notes
+        id: release_notes
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          # 获取上一个 tag
+          PREV_TAG=$(git describe --tags --abbrev=0 ${{ github.ref_name }}^ 2>/dev/null || git rev-list --max-parents=0 HEAD)
+          echo "Previous tag: $PREV_TAG"
+          
+          # 提取 commit 记录
+          LOGS=$(git log $PREV_TAG..${{ github.ref_name }} --pretty=format:"%s")
+          
+          # 初始化分类内容
+          FEATS=""
+          FIXES=""
+          DOCS=""
+          OTHERS=""
+          
+          # 按前缀归类
+          while IFS= read -r line; do
+            [ -z "$line" ] && continue
+            
+            # 清理特殊字符
+            clean_line=$(echo "$line" | sed 's/\\/\\\\/g; s/`/\\`/g')
+            
+            if [[ $line =~ ^feat ]]; then
+              FEATS="$FEATS\n- ${clean_line#feat: }"
+            elif [[ $line =~ ^fix ]]; then
+              FIXES="$FIXES\n- ${clean_line#fix: }"
+            elif [[ $line =~ ^docs ]]; then
+              DOCS="$DOCS\n- ${clean_line#docs: }"
+            elif [[ $line =~ ^refactor ]] || [[ $line =~ ^perf ]] || [[ $line =~ ^ci ]]; then
+              FIXES="$FIXES\n- ${clean_line}"
+            else
+              OTHERS="$OTHERS\n- ${clean_line}"
+            fi
+          done <<< "$LOGS"
+          
+          # 组合最终正文
+          BODY=""
+          [ -n "$FEATS" ] && BODY="$BODY\n### 🚀 新功能 (Features)$FEATS\n"
+          [ -n "$FIXES" ] && BODY="$BODY\n### 🔧 修复与优化 (Bug Fixes & Improvements)$FIXES\n"
+          [ -n "$DOCS" ] && BODY="$BODY\n### 📝 文档更新 (Documentation)$DOCS\n"
+          [ -n "$OTHERS" ] && BODY="$BODY\n### 📦 其他改动 (Others)$OTHERS\n"
+          
+          [ -z "$BODY" ] && BODY="本次发布包含内部优化与稳定性提升。"
+          
+          # 存入环境变量
+          {
+            echo "body<<EOF"
+            echo -e "$BODY"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: 创建扩展包
         run: |
           cd dist
           zip -r ../PixelOracle-${{ github.ref_name }}.zip .
 
-      - name: Upload build artifact
+      - name: 上传构建产物
         uses: actions/upload-artifact@v4
         with:
           name: PixelOracle-extension
           path: dist/
           retention-days: 30
 
-      - name: Upload zip artifact
+      - name: 上传 zip 产物
         uses: actions/upload-artifact@v4
         with:
           name: PixelOracle-zip
@@ -53,23 +116,97 @@ jobs:
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
     
-    permissions:
-      contents: write
-
     steps:
-      - name: Checkout repository
+      - name: 拉取源代码
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: Download zip artifact
+      - name: 获取当前时间 (北京时间)
+        run: |
+          BUILD_TIME=$(TZ=Asia/Shanghai date "+%Y-%m-%d %H:%M:%S")
+          echo "BUILD_TIME=$BUILD_TIME" >> $GITHUB_ENV
+
+      - name: 生成 Release Notes
+        id: release_notes
+        run: |
+          # 获取上一个 tag
+          PREV_TAG=$(git describe --tags --abbrev=0 ${{ github.ref_name }}^ 2>/dev/null || git rev-list --max-parents=0 HEAD)
+          echo "Previous tag: $PREV_TAG"
+          
+          # 提取 commit 记录
+          LOGS=$(git log $PREV_TAG..${{ github.ref_name }} --pretty=format:"%s")
+          
+          # 初始化分类内容
+          FEATS=""
+          FIXES=""
+          DOCS=""
+          OTHERS=""
+          
+          # 按前缀归类
+          while IFS= read -r line; do
+            [ -z "$line" ] && continue
+            
+            # 清理特殊字符
+            clean_line=$(echo "$line" | sed 's/\\/\\\\/g; s/`/\\`/g')
+            
+            if [[ $line =~ ^feat ]]; then
+              FEATS="$FEATS\n- ${clean_line#feat: }"
+            elif [[ $line =~ ^fix ]]; then
+              FIXES="$FIXES\n- ${clean_line#fix: }"
+            elif [[ $line =~ ^docs ]]; then
+              DOCS="$DOCS\n- ${clean_line#docs: }"
+            elif [[ $line =~ ^refactor ]] || [[ $line =~ ^perf ]] || [[ $line =~ ^ci ]]; then
+              FIXES="$FIXES\n- ${clean_line}"
+            else
+              OTHERS="$OTHERS\n- ${clean_line}"
+            fi
+          done <<< "$LOGS"
+          
+          # 组合最终正文
+          BODY=""
+          [ -n "$FEATS" ] && BODY="$BODY\n### 🚀 新功能 (Features)$FEATS\n"
+          [ -n "$FIXES" ] && BODY="$BODY\n### 🔧 修复与优化 (Bug Fixes & Improvements)$FIXES\n"
+          [ -n "$DOCS" ] && BODY="$BODY\n### 📝 文档更新 (Documentation)$DOCS\n"
+          [ -n "$OTHERS" ] && BODY="$BODY\n### 📦 其他改动 (Others)$OTHERS\n"
+          
+          [ -z "$BODY" ] && BODY="本次发布包含内部优化与稳定性提升。"
+          
+          # 存入环境变量
+          {
+            echo "body<<EOF"
+            echo -e "$BODY"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: 下载 zip 产物
         uses: actions/download-artifact@v4
         with:
           name: PixelOracle-zip
           path: ./
 
-      - name: Create Release
+      - name: 创建 Release
         uses: softprops/action-gh-release@v1
         with:
           files: PixelOracle-${{ github.ref_name }}.zip
-          generate_release_notes: true
+          body: |
+            ## 🔮 PixelOracle - AI 图片提示词逆向分析工具
+
+            ### 🚀 本次更新
+            ${{ steps.release_notes.outputs.body }}
+
+            ### 📦 安装方法
+            1. 下载 `PixelOracle-${{ github.ref_name }}.zip`
+            2. 解压得到 `dist` 文件夹
+            3. 打开 Chrome，访问 `chrome://extensions/`
+            4. 开启"开发者模式"
+            5. 点击"加载已解压的扩展程序"
+            6. 选择解压后的 `dist` 文件夹
+
+            ### 🌍 支持语言
+            English | 简体中文 | 繁體中文 | 日本語 | 한국어
+
+            ---
+            *由 GitHub Actions 自动构建发布 - ${{ env.BUILD_TIME }}*
           draft: false
           prerelease: false
